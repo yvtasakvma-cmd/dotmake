@@ -17,24 +17,7 @@ button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulat
 button:disabled { cursor: default; opacity: .28; }
 button:focus-visible, a:focus-visible { outline: 3px solid #b86835; outline-offset: 4px; }
 button { border: 0; }
-.app-shell { max-width: 1104px; margin: 0 auto; padding: 0 max(32px, env(safe-area-inset-left)) 0 max(32px, env(safe-area-inset-right)); }
-.app-header { display: flex; align-items: center; justify-content: space-between; height: 102px; border-bottom: 1px solid var(--line); }
-.brand { color: #30362f; text-decoration: none; display: flex; align-items: center; gap: 12px; font-size: 27px; font-weight: 750; letter-spacing: -1.5px; }
-.brand-light { font-weight: 400; }
-.brand-dot { color: #d37f48; }
-.brand-mark { position: relative; display: block; width: 32px; height: 32px; }
-.brand-mark i { display: block; width: 10px; height: 10px; background: #303b32; position: absolute; }
-.brand-mark i:nth-child(1) { top: 0; left: 0; }
-.brand-mark i:nth-child(2) { top: 0; left: 11px; }
-.brand-mark i:nth-child(3) { top: 11px; left: 0; }
-.brand-mark i:nth-child(4) { top: 11px; left: 11px; background: #d88a53; }
-.brand-mark i:nth-child(5) { top: 22px; left: 0; }
-.version-tag { color: var(--muted); font: 10px ui-monospace, monospace; letter-spacing: 1.3px; display: flex; align-items: center; gap: 12px; }
-.version-tag span { background: #e8e9df; padding: 6px 8px; border-radius: 4px; color: #59664e; letter-spacing: 0; }
-.intro { display: flex; align-items: center; justify-content: space-between; padding: 36px 0 30px; }
-.eyebrow { margin: 0 0 12px; font: 9px ui-monospace, monospace; letter-spacing: 1.8px; color: var(--muted); }
-h1 { margin: 0; font-size: 24px; font-weight: 550; letter-spacing: 1px; }
-.intro-star { font-size: 40px; line-height: 1; color: #c5b797; margin-right: 8px; }
+.app-shell { max-width: 1104px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) 0 max(32px, env(safe-area-inset-left)); }
 .editor { border: 1px solid #d8dbce; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 24px #2b342208; background: #fbfaf6; }
 .workspace-toolbar { min-height: 66px; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 18px 10px 24px; border-bottom: 1px solid var(--line); }
 .document-info { display: flex; align-items: center; gap: 10px; }
@@ -96,15 +79,6 @@ kbd { font: 10px ui-monospace, monospace; margin-left: auto; opacity: .45; }
 
 @media (max-width: 760px) {
   .app-shell { max-width: 560px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
-  .app-header { height: 70px; }
-  .brand { font-size: 24px; gap: 8px; }
-  .brand-mark { transform: scale(.8); transform-origin: left center; width: 26px; }
-  .version-tag { font-size: 8px; letter-spacing: .6px; gap: 6px; }
-  .version-tag span { padding: 5px 6px; }
-  .intro { padding: 23px 0 21px; }
-  .eyebrow { font-size: 7px; letter-spacing: 1.2px; margin-bottom: 9px; }
-  h1 { font-size: 18px; letter-spacing: .4px; }
-  .intro-star { font-size: 27px; margin-right: 2px; }
   .workspace-toolbar { min-height: 58px; padding: 6px 8px 6px 14px; }
   .document-info { gap: 7px; flex-wrap: wrap; }
   .document-info strong { font-size: 11px; }
@@ -138,17 +112,11 @@ kbd { font: 10px ui-monospace, monospace; margin-left: auto; opacity: .45; }
   .footer-pixels { display: none; }
 }
 @media (max-width: 360px) {
-  .version-tag { letter-spacing: 0; }
-  .version-tag span { display: none; }
-  h1 { font-size: 16px; }
-  .intro-star { font-size: 23px; }
   .document-info strong { font-size: 10px; }
   .app-footer { flex-wrap: wrap; }
 }
 @media (max-height: 500px) and (orientation: landscape) {
   .app-shell { max-width: 1040px; }
-  .app-header { height: 58px; }
-  .intro { padding: 16px 0; }
   .editor-body { display: grid; grid-template-columns: minmax(0, 1fr) 220px; }
   .tool-panel { border-top: 0; border-left: 1px solid var(--line); }
   .canvas-wrap { max-width: 320px; }

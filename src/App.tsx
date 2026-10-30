@@ -42,20 +42,7 @@ export default function App() {
   }, [state.past.length, state.future.length, drawing]);
 
   return <div className="app-shell">
-    <header className="app-header">
-      <a className="brand" href="#" aria-label="Pixel Studio">
-        <span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /><i /></span>
-        <span>pixel<span className="brand-light">studio</span><span className="brand-dot">.</span></span>
-      </a>
-      <span className="version-tag">FIRST PIXELS <span>01</span></span>
-    </header>
-
-    <main>
-      <section className="intro" aria-labelledby="editor-title">
-        <div><p className="eyebrow">A LITTLE CANVAS, A BIG WORLD</p><h1 id="editor-title">小さなドットから、はじめよう。</h1></div>
-        <svg className="intro-star" width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M18 2v32M2 18h32M7 7l22 22M7 29 29 7" /></svg>
-      </section>
-
+    <main aria-label="Pixel Studio">
       <section className="editor" aria-label="ドット絵エディタ">
         <div className="workspace-toolbar">
           <div className="document-info"><span className="document-dot" /><strong>はじめてのキャンバス</strong><span className="dimension">32 × 32</span></div>
