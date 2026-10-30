@@ -6,6 +6,8 @@ import { ExportDialog } from './components/ExportDialog';
 import { PwaStatus } from './components/PwaStatus';
 import { RecentColors } from './components/RecentColors';
 import { PalettePanel } from './components/PalettePanel';
+import { QuickTools } from './components/QuickTools';
+import { BrushSizeDialog } from './components/BrushSizeDialog';
 import { BrushControls } from './components/BrushControls';
 import { WalkPreviewDialog } from './components/WalkPreviewDialog';
 import { FrameControls } from './components/FrameControls';
@@ -47,6 +49,14 @@ export default function App() {
   const [centerMode, setCenterMode] = useState<GuideMode>('off');
   const [penSize, setPenSize] = useState(1);
   const [eraserSize, setEraserSize] = useState(1);
+  const [mobileTools, setMobileTools] = useState(() => matchMedia('(pointer: coarse) and (max-width: 1024px)').matches);
+  const [brushPopup, setBrushPopup] = useState<'pen' | 'eraser' | null>(null);
+  useEffect(() => {
+    const media = matchMedia('(pointer: coarse) and (max-width: 1024px)');
+    const change = () => { setMobileTools(media.matches); setBrushPopup(null); };
+    media.addEventListener('change', change);
+    return () => media.removeEventListener('change', change);
+  }, []);
   const palette = usePalette();
   const [zoom, setZoom] = useState(1);
   const [newCanvas, setNewCanvas] = useState(false);
@@ -91,6 +101,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', keyboard);
   }, [screen, tool, state.selection, state.floating, state.stroke, canvasInteraction]);
 
+  const quickTools = <QuickTools tool={tool} disabled={locked} mobile={mobileTools} onSelect={setTool} onSize={(value) => { setTool(value); setBrushPopup(value); }} />;
   return <div className="app-shell">
     <main aria-label="Pixel Studio">
       {screen === 'menu' && <StartMenu ready={autosave.ready && !autosave.busy} onCharacter={() => setScreen('library')} />}
@@ -120,14 +131,11 @@ export default function App() {
         <div className="editor-body">
           <div className="canvas-workspace">
             <FrameControls state={state} disabled={locked} dispatch={dispatch} onPlay={() => setWalkPreview(true)} metadata={<> <strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド設定" aria-haspopup="dialog" aria-expanded={guidesOpen} disabled={locked} onClick={() => setGuidesOpen(true)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button> </>} />
-            <div className="canvas-drawing-row">
-              <BrushControls tool={tool} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />
+            <div className={`canvas-drawing-row ${mobileTools ? 'mobile-drawing-row' : ''}`}>
+              {!mobileTools && <BrushControls tool={tool} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />}
             <PixelCanvas state={state} document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
-              <div className="canvas-quick-tools" role="group" aria-label="キャンバス横のツール">{(['pen', 'picker', 'eraser'] as const).map((value) => {
-                const item = TOOLS.find(item => item.tool === value)!;
-                return <button key={value} className={`tool-button ${tool === value ? 'selected' : ''}`} aria-label={item.label} aria-pressed={tool === value} disabled={locked} title={item.label} onClick={() => setTool(value)}><Icon name={value} size={22} /><span>{item.label}</span></button>;
-              })}</div>
+              {!mobileTools && quickTools}
             </div>
             <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><RecentColors colors={state.recentColors} color={color} disabled={locked} onSelect={selectColor} /><div><button aria-label="縮小" disabled={zoom <= 1 || locked} onClick={() => setZoom(Math.max(1, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(2))}倍</output><button aria-label="拡大" disabled={zoom >= 16 || locked} onClick={() => setZoom(Math.min(16, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
           </div>
@@ -137,6 +145,7 @@ export default function App() {
               <div className="tool-buttons">{TOOLS.filter(item => !['pen', 'picker', 'eraser'].includes(item.tool)).map((item) => <button key={item.tool} className={`tool-button ${tool === item.tool ? 'selected' : ''}`} aria-label={item.label} aria-pressed={tool === item.tool} disabled={locked} onClick={() => setTool(item.tool)}><Icon name={item.tool} size={22} /><span>{item.tool === 'pan' ? '移動' : item.label}</span><kbd>{item.key}</kbd></button>)}</div>
             </section>
             {tool === 'select' && <SelectionControls state={state} disabled={!!state.stroke || canvasInteraction || autosave.busy || !autosave.ready} dispatch={dispatch} />}
+            {mobileTools && <div className="mobile-tools-above-palette">{quickTools}<p className="palette-hint">ペン・消しゴムは長押しで太さを変更</p></div>}
             <PalettePanel presets={PALETTE} palette={palette} color={color} disabled={locked} onSelect={selectColor} />
           </aside>
         </div>
@@ -145,13 +154,14 @@ export default function App() {
       <p className={`save-status ${autosave.failed ? 'error' : ''}`} role="status">{autosave.status}</p>
       {autosave.warning && <p role="alert">{autosave.warning}</p>}
       {error && <p role="alert">{error}</p>}
-      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !walkPreview && !guidesOpen} />
+      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !walkPreview && !guidesOpen && !brushPopup} />
     </main>
     {deleting && <DeleteProjectDialog name={deleting.name} disabled={autosave.busy} onClose={() => setDeleting(null)} onDelete={() => autosave.remove(deleting.id)} />}
     {newCanvas && <NewCanvasDialog disabled={autosave.busy} onClose={() => setNewCanvas(false)} onCreate={(w, h, name) => {
       try { void autosave.create(createCharacter(w, h, name)).then((created) => { if (created) { setTool('pen'); setCenterMode('vertical'); setZoom(1); setNewCanvas(false); setError(''); } }); }
       catch { setError('幅・高さは1〜256の整数で指定してください。'); }
     }} />}
+    {brushPopup && <BrushSizeDialog tool={brushPopup} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} onClose={() => setBrushPopup(null)} />}
     {guidesOpen && <GuideDialog gridMode={gridMode} centerMode={centerMode} onCenter={setCenterMode} onGrid={(mode) => { setGrid(mode !== 'off'); if (mode !== 'off') setGridDirection(mode); }} onClose={() => setGuidesOpen(false)} />}
     {walkPreview && state.document.frames && <WalkPreviewDialog document={state.document} onClose={() => setWalkPreview(false)} />}
     {png && <ExportDialog blob={png} filename={`pixel-studio-${width * (state.document.frames ? 3 : 1)}x${height * (state.document.frames ? 4 : 1)}.png`} onClose={() => setPng(null)} />}

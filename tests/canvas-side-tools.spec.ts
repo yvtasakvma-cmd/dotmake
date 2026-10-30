@@ -1,7 +1,9 @@
+import { holdBrush } from './brush-size';
 import { expect, test } from '@playwright/test';
 import { enterEditor } from './navigation';
 
 test('keeps quick tools beside the canvas and changes each brush size with the vertical slider', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Desktop layout is covered separately from the mobile tools.');
   await page.goto('.'); await enterEditor(page);
   await expect(page.locator('.tool-panel .brush-controls')).toHaveCount(0);
   for (const name of ['ペン', 'スポイト', '消しゴム']) {
@@ -34,5 +36,35 @@ test('keeps quick tools beside the canvas and changes each brush size with the v
   await quick.getByRole('button', { name: '消しゴム', exact: true }).click();
   await expect(eraser).toHaveValue('3');
   await expect(eraser).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+
+test('mobile tools sit above the palette and long pressing opens independent brush sizes', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Mobile touch layout');
+  await page.goto('.'); await enterEditor(page);
+  await expect(page.locator('.canvas-drawing-row .brush-slider')).toHaveCount(0);
+  await expect(page.locator('.canvas-drawing-row .canvas-quick-tools')).toHaveCount(0);
+  const group = page.getByRole('group', { name: 'パレット上のツール', exact: true });
+  await expect(group.getByRole('button')).toHaveCount(3);
+  const positions = await page.evaluate(() => ({ tools: document.querySelector('.mobile-tools-above-palette')!.getBoundingClientRect().bottom, palette: document.querySelector('.palette-section')!.getBoundingClientRect().top }));
+  expect(positions.tools).toBeLessThanOrEqual(positions.palette);
+  await group.getByRole('button', { name: '消しゴム', exact: true }).tap();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(group.getByRole('button', { name: '消しゴム', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  const before = await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
+  await holdBrush(page, 'ペン');
+  await page.getByRole('slider', { name: 'ペンの太さ', exact: true }).fill('7');
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await holdBrush(page, '消しゴム');
+  await expect(page.getByRole('slider')).toHaveValue('1');
+  await page.getByRole('slider').fill('3');
+  await page.keyboard.press('Escape');
+  await holdBrush(page, 'ペン');
+  await expect(page.getByRole('slider')).toHaveValue('7');
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  expect(await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL())).toBe(before);
+  await group.getByRole('button', { name: 'スポイト', exact: true }).tap();
+  await expect(group.getByRole('button', { name: 'スポイト', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

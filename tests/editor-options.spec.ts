@@ -1,3 +1,4 @@
+import { holdBrush } from './brush-size';
 import { enterEditor } from './navigation';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -62,7 +63,9 @@ test('adds and removes saved colours, rejects duplicates, restores offline witho
 });
 
 test('keeps independent pen/eraser sizes and one undo step for a wide stroke', async ({ page, isMobile }) => {
-  await page.getByLabel('ペンの太さ', { exact: true }).fill('4');
+  if (isMobile) await holdBrush(page, 'ペン');
+  await page.getByRole('slider', { name: 'ペンの太さ', exact: true }).fill('4');
+  if (isMobile) await page.getByRole('button', { name: '閉じる', exact: true }).click();
   const start = await point(page, 6, 8), end = await point(page, 14, 8);
   if (isMobile) {
     const session = await page.context().newCDPSession(page);
@@ -80,7 +83,9 @@ test('keeps independent pen/eraser sizes and one undo step for a wide stroke', a
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'やり直す', exact: true }).click();
   await page.getByRole('button', { name: '消しゴム', exact: true }).click();
-  await page.getByLabel('消しゴムの太さ', { exact: true }).fill('2');
+  if (isMobile) await holdBrush(page, '消しゴム');
+  await page.getByRole('slider', { name: '消しゴムの太さ', exact: true }).fill('2');
+  if (isMobile) await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await tap(page, 8, 8);
   expect(await rgba(page, 8, 8)).toEqual([0, 0, 0, 0]);
   expect(await rgba(page, 9, 9)).toEqual([0, 0, 0, 0]);
@@ -89,9 +94,13 @@ test('keeps independent pen/eraser sizes and one undo step for a wide stroke', a
   await page.getByRole('button', { name: '元に戻す', exact: true }).click();
   expect(await rgba(page, 8, 8)).toEqual([0, 0, 0, 255]);
   await page.getByRole('button', { name: 'ペン', exact: true }).click();
-  await expect(page.getByLabel('ペンの太さ', { exact: true })).toHaveValue('4');
+  if (isMobile) await holdBrush(page, 'ペン');
+  await expect(page.getByRole('slider', { name: 'ペンの太さ', exact: true })).toHaveValue('4');
+  if (isMobile) await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('button', { name: '消しゴム', exact: true }).click();
-  await expect(page.getByLabel('消しゴムの太さ', { exact: true })).toHaveValue('2');
+  if (isMobile) await holdBrush(page, '消しゴム');
+  await expect(page.getByRole('slider', { name: '消しゴムの太さ', exact: true })).toHaveValue('2');
+  if (isMobile) await page.getByRole('button', { name: '閉じる', exact: true }).click();
 });
 
 test('switches directional grids and centre lines without changing pixels or the PNG', async ({ page, isMobile }) => {

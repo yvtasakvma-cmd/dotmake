@@ -798,6 +798,16 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
   .workspace-toolbar .history-buttons { gap: 0; }
 }
 
+.mobile-drawing-row { grid-template-columns: minmax(0, 1fr); }
+.mobile-quick-tools { flex-direction: row; justify-content: stretch; }
+.mobile-quick-tools .tool-button { width: auto; flex: 1; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.mobile-tools-above-palette { margin-top: 16px; }
+.brush-size-dialog { width: min(360px, calc(100% - 32px)); }
+.brush-size-dialog .brush-slider { gap: 12px; }
+.brush-size-dialog .brush-slider-limit { display: none; }
+.brush-size-dialog .brush-slider input { writing-mode: horizontal-tb; direction: ltr; width: 100%; height: 44px; min-height: 44px; flex: none; cursor: ew-resize; }
+.brush-size-dialog .brush-slider output { font-size: 16px; }
+
 /* Keep frame navigation and frame actions to two compact rows. */
 .frame-navigation { padding: 8px 0 0; border-bottom: 0; }
 .frame-nav-row .walk-preview-button { width: 44px; min-width: 44px; margin: 0; }
