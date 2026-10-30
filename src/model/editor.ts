@@ -1,11 +1,12 @@
 import { drawLine } from '../drawing/stroke';
 import { floodFill } from '../drawing/fill';
-import { createDocument, selectFrame, withPixels, type Color, type PixelDocument, type Point } from './document';
+import { colorToHex, createDocument, selectFrame, withPixels, type Color, type PixelDocument, type Point } from './document';
 import { copyRegion, flipRegion, moveRegion, placeRegion, rectangle, translated, type PixelRegion, type Rect } from '../drawing/selection';
 
 export const HISTORY_LIMIT = 50;
 export interface EditorState {
   readonly document: PixelDocument;
+  readonly recentColors: readonly string[];
   readonly past: readonly PixelDocument[];
   readonly future: readonly PixelDocument[];
   readonly selection: Rect | null;
@@ -36,7 +37,13 @@ export type EditorAction =
   | { type: 'redo' };
 
 export function createEditor(): EditorState {
-  return { document: createDocument(), past: [], future: [], stroke: null, selection: null, regionClipboard: null, frameClipboard: null, floating: null };
+  return { document: createDocument(), recentColors: [], past: [], future: [], stroke: null, selection: null, regionClipboard: null, frameClipboard: null, floating: null };
+}
+
+function rememberColor(colors: readonly string[], color: Color): readonly string[] {
+  if (color[3] === 0) return colors;
+  const hex = colorToHex(color);
+  return [hex, ...colors.filter(item => item !== hex)].slice(0, 5);
 }
 
 function commitImage(state: EditorState, document: PixelDocument, before = state.document): EditorState {
@@ -98,7 +105,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       if (state.stroke || state.floating) return state;
       const document = floodFill(state.document, action.point, action.color);
       if (document === state.document) return state;
-      return { ...state, document, past: [...state.past, state.document].slice(-HISTORY_LIMIT), future: [], stroke: null };
+      return { ...state, document, recentColors: rememberColor(state.recentColors, action.color), past: [...state.past, state.document].slice(-HISTORY_LIMIT), future: [], stroke: null };
     }
     case 'begin':
       if (state.stroke || state.floating) return state;
@@ -120,6 +127,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         stroke: null,
+        recentColors: rememberColor(state.recentColors, state.stroke.color),
         past: [...state.past, state.stroke.before].slice(-HISTORY_LIMIT),
         future: [],
       };

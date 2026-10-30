@@ -4,6 +4,7 @@ import { PixelCanvas } from './components/PixelCanvas';
 import { NewCanvasDialog } from './components/NewCanvasDialog';
 import { ExportDialog } from './components/ExportDialog';
 import { PwaStatus } from './components/PwaStatus';
+import { RecentColors } from './components/RecentColors';
 import { PalettePanel } from './components/PalettePanel';
 import { BrushControls } from './components/BrushControls';
 import { WalkPreviewDialog } from './components/WalkPreviewDialog';
@@ -121,7 +122,7 @@ export default function App() {
             <div className="canvas-meta"><strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド表示" aria-pressed={grid} onClick={() => setGrid(!grid)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button></div>
             <PixelCanvas state={state} document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
-            <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><div><button aria-label="縮小" disabled={zoom <= 1 || locked} onClick={() => setZoom(Math.max(1, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(2))}倍</output><button aria-label="拡大" disabled={zoom >= 16 || locked} onClick={() => setZoom(Math.min(16, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
+            <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><RecentColors colors={state.recentColors} color={color} disabled={locked} onSelect={selectColor} /><div><button aria-label="縮小" disabled={zoom <= 1 || locked} onClick={() => setZoom(Math.max(1, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(2))}倍</output><button aria-label="拡大" disabled={zoom >= 16 || locked} onClick={() => setZoom(Math.min(16, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
           </div>
           <aside className="tool-panel" aria-label="描画ツール">
             <section className="tools-section" aria-labelledby="tools-heading">

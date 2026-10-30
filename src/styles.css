@@ -785,3 +785,11 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
 .walk-preview-stage canvas { display: block; width: 256px; max-width: 100%; height: auto; max-height: 40dvh; object-fit: contain; image-rendering: pixelated; }
 .walk-preview-speed { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .walk-preview-speed select { min-height: 44px; }
+
+.view-controls { flex-wrap: wrap; }
+.view-controls > div { margin-left: auto; }
+.recent-colors { display: flex; align-items: center; gap: 2px; margin-right: auto; }
+.view-controls .recent-color, .recent-color-empty { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; padding: 5px; }
+.recent-color > span, .recent-color-empty::after { width: 32px; height: 32px; border: 1px solid #bfc5b3; border-radius: 5px; }
+.recent-color-empty::after { content: ''; border-style: dashed; opacity: .45; }
+.view-controls .recent-color[aria-pressed="true"] > span { outline: 2px solid #30362f; outline-offset: 2px; }

@@ -144,3 +144,31 @@ test('palette write failures retain the last saved colours and the drawing', asy
   await expect(page.getByRole('button', { name: '追加色 #fa1267', exact: true })).toBeVisible();
   expect(await rgba(page, 8, 8)).toEqual([250, 18, 103, 255]);
 });
+
+test('shows five recent drawing colours below the canvas and reuses them by touch or mouse', async ({ page, isMobile }) => {
+  const history = page.getByRole('region', { name: '最近使った色', exact: true });
+  await expect(history.locator('.recent-color-empty')).toHaveCount(5);
+  for (const hex of ['#111111', '#222222', '#333333', '#444444', '#555555', '#666666']) {
+    await page.getByLabel('自由な色', { exact: true }).fill(hex);
+    await tap(page, 0, 0);
+  }
+  const labels = () => history.getByRole('button').evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-label')));
+  expect(await labels()).toEqual(['#666666', '#555555', '#444444', '#333333', '#222222'].map(hex => `最近使った色 ${hex}`));
+  await page.getByRole('button', { name: '消しゴム', exact: true }).click();
+  await tap(page, 0, 0);
+  const recent = history.getByRole('button', { name: '最近使った色 #333333', exact: true });
+  await recent.scrollIntoViewIfNeeded();
+  if (isMobile) await recent.tap(); else await recent.click();
+  await expect(page.getByLabel('自由な色', { exact: true })).toHaveValue('#333333');
+  await expect(page.getByRole('button', { name: 'ペン', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await tap(page, 1, 1);
+  expect(await rgba(page, 1, 1)).toEqual([51, 51, 51, 255]);
+  expect(await labels()).toEqual(['#333333', '#666666', '#555555', '#444444', '#222222'].map(hex => `最近使った色 ${hex}`));
+  expect(await history.getByRole('button').count()).toBe(5);
+  const position = await history.evaluate(element => {
+    const canvas = document.querySelector('.canvas-viewport')!.getBoundingClientRect();
+    return { top: element.getBoundingClientRect().top, canvasBottom: canvas.bottom, overflow: document.documentElement.scrollWidth > innerWidth };
+  });
+  expect(position.top).toBeGreaterThanOrEqual(position.canvasBottom);
+  expect(position.overflow).toBe(false);
+});
