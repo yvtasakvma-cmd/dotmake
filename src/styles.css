@@ -778,3 +778,10 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
 @media (max-width: 380px) { .frame-nav-row { gap: 2px; } .frame-nav-row > output { font-size: 11px; } .direction-buttons { gap: 2px; } }
 
 .frame-thumbnail { display: block; width: 48px; height: 48px; max-width: 100%; margin: 0 auto 4px; object-fit: contain; image-rendering: pixelated; background-color: #fff; background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0); background-size: 12px 12px; }
+
+.walk-preview-button { width: 100%; margin-top: 10px; }
+.walk-preview-dialog { width: min(440px, calc(100% - 24px)); }
+.walk-preview-stage { display: grid; place-items: center; padding: 12px; background-color: #fff; background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0); background-size: 16px 16px; }
+.walk-preview-stage canvas { display: block; width: 256px; max-width: 100%; height: auto; max-height: 40dvh; object-fit: contain; image-rendering: pixelated; }
+.walk-preview-speed { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.walk-preview-speed select { min-height: 44px; }

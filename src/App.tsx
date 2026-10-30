@@ -6,6 +6,7 @@ import { ExportDialog } from './components/ExportDialog';
 import { PwaStatus } from './components/PwaStatus';
 import { PalettePanel } from './components/PalettePanel';
 import { BrushControls } from './components/BrushControls';
+import { WalkPreviewDialog } from './components/WalkPreviewDialog';
 import { FrameControls } from './components/FrameControls';
 import { SelectionControls } from './components/SelectionControls';
 import { GuideControls } from './components/GuideControls';
@@ -50,6 +51,7 @@ export default function App() {
   const [newCanvas, setNewCanvas] = useState(false);
   const [png, setPng] = useState<Blob | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [walkPreview, setWalkPreview] = useState(false);
   const [error, setError] = useState('');
   const autosave = useAutosave(state, dispatch);
   const drawing = state.stroke !== null || state.floating !== null;
@@ -115,7 +117,7 @@ export default function App() {
         </div>
         <div className="editor-body">
           <div className="canvas-workspace">
-            <FrameControls state={state} disabled={locked} dispatch={dispatch} />
+            <FrameControls state={state} disabled={locked} dispatch={dispatch} onPlay={() => setWalkPreview(true)} />
             <div className="canvas-meta"><strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド表示" aria-pressed={grid} onClick={() => setGrid(!grid)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button></div>
             <PixelCanvas state={state} document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
@@ -137,13 +139,14 @@ export default function App() {
       <p className={`save-status ${autosave.failed ? 'error' : ''}`} role="status">{autosave.status}</p>
       {autosave.warning && <p role="alert">{autosave.warning}</p>}
       {error && <p role="alert">{error}</p>}
-      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy} />
+      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !walkPreview} />
     </main>
     {deleting && <DeleteProjectDialog name={deleting.name} disabled={autosave.busy} onClose={() => setDeleting(null)} onDelete={() => autosave.remove(deleting.id)} />}
     {newCanvas && <NewCanvasDialog disabled={autosave.busy} onClose={() => setNewCanvas(false)} onCreate={(w, h, name) => {
       try { void autosave.create(createCharacter(w, h, name)).then((created) => { if (created) { setTool('pen'); setCenterMode('vertical'); setZoom(1); setNewCanvas(false); setError(''); } }); }
       catch { setError('幅・高さは1〜256の整数で指定してください。'); }
     }} />}
+    {walkPreview && state.document.frames && <WalkPreviewDialog document={state.document} onClose={() => setWalkPreview(false)} />}
     {png && <ExportDialog blob={png} filename={`pixel-studio-${width * (state.document.frames ? 3 : 1)}x${height * (state.document.frames ? 4 : 1)}.png`} onClose={() => setPng(null)} />}
   </div>;
 }

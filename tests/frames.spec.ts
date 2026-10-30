@@ -108,3 +108,47 @@ test('corrupt frame arrays are retained and reported without replacing the saved
     };
   }))).toBe(11);
 });
+
+test('previews only the selected direction, loops its poses and leaves the artwork unchanged', async ({ page }) => {
+  const colours = ['#ff0000', '#00ff00', '#0000ff', '#ffff00'];
+  const rgba = [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255], [255, 255, 0, 255]];
+  for (let row = 0; row < 4; row++) {
+    await page.getByLabel('自由な色', { exact: true }).fill(colours[row]);
+    for (let column = 0; column < 3; column++) {
+      await choose(page, row * 3 + column); await paint(page, column, 0);
+    }
+  }
+  await expect(page.getByText('この端末に保存済み', { exact: true })).toBeVisible();
+  await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
+  const editor = page.locator('.canvas-workspace canvas');
+  for (let row = 0; row < 4; row++) {
+    await choose(page, row * 3 + 2);
+    const before = await editor.evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
+    await page.getByRole('button', { name: '歩行を再生', exact: false }).click();
+    const dialog = page.getByRole('dialog', { name: `${directions[row]}の歩行プレビュー`, exact: true });
+    await expect(dialog).toBeVisible();
+    const preview = dialog.locator('canvas');
+    async function assertPose(column: number) {
+      await expect(dialog.getByLabel('再生中のポーズ')).toHaveText(poses[column]);
+      expect(await preview.evaluate((canvas: HTMLCanvasElement) => {
+        const context = canvas.getContext('2d')!;
+        return Array.from({ length: 3 }, (_, x) => [...context.getImageData(x, 0, 1, 1).data]);
+      })).toEqual(Array.from({ length: 3 }, (_, x) => x === column ? rgba[row] : [0, 0, 0, 0]));
+    }
+    await assertPose(1);
+    for (const column of [0, 1, 2, 1]) { await page.clock.runFor(167); await assertPose(column); }
+    await dialog.getByRole('button', { name: '一時停止', exact: true }).click();
+    await page.clock.runFor(2000); await assertPose(1);
+    await dialog.getByLabel('再生速度', { exact: true }).selectOption('2');
+    await dialog.getByRole('button', { name: '再生を続ける', exact: true }).click();
+    await page.clock.runFor(500); await assertPose(0);
+    if (row % 2) await page.keyboard.press('Escape');
+    else await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(await editor.evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL())).toBe(before);
+    await expect(page.getByLabel('編集中のコマ')).toHaveText(`${directions[row]}・右足`);
+    // A closed popup must stop its timer and allow drawing immediately.
+    await page.clock.runFor(1000);
+  }
+});
