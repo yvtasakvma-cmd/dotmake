@@ -6,6 +6,7 @@ import { ExportDialog } from './components/ExportDialog';
 import { PwaStatus } from './components/PwaStatus';
 import { PalettePanel } from './components/PalettePanel';
 import { BrushControls } from './components/BrushControls';
+import { FrameControls } from './components/FrameControls';
 import { SelectionControls } from './components/SelectionControls';
 import { GuideControls } from './components/GuideControls';
 import { StartMenu } from './components/StartMenu';
@@ -14,7 +15,7 @@ import { DeleteProjectDialog } from './components/DeleteProjectDialog';
 import type { ProjectSummary } from './io/storage';
 import { CharacterSetup } from './components/CharacterSetup';
 import type { GuideMode } from './drawing/guides';
-import { colorToHex, createDocument, hexToColor, TRANSPARENT, type Tool } from './model/document';
+import { colorToHex, createCharacter, hexToColor, TRANSPARENT, type Tool } from './model/document';
 import { createEditor, editorReducer } from './model/editor';
 import { useAutosave } from './io/useAutosave';
 import { encodePng } from './io/png';
@@ -94,7 +95,7 @@ export default function App() {
         onPaste={() => { void autosave.paste().then((created) => { if (created) { setCenterMode('vertical'); setZoom(1); setTool('pen'); setScreen('editor'); setError(''); } }); }} />}
       {screen === 'character' && <CharacterSetup disabled={autosave.busy} onBack={() => setScreen('library')} onCreate={(name, w, h) => {
         try {
-          void autosave.create({ ...createDocument(w, h), name, kind: 'character' }).then((created) => {
+          void autosave.create(createCharacter(w, h, name)).then((created) => {
             if (created) { setCenterMode('vertical'); setZoom(1); setTool('pen'); setScreen('editor'); setError(''); }
           });
         } catch { setError('幅・高さは1〜256の整数で指定してください。'); }
@@ -114,6 +115,7 @@ export default function App() {
         </div>
         <div className="editor-body">
           <div className="canvas-workspace">
+            <FrameControls state={state} disabled={locked} dispatch={dispatch} />
             <div className="canvas-meta"><strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド表示" aria-pressed={grid} onClick={() => setGrid(!grid)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button></div>
             <PixelCanvas state={state} document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
@@ -139,9 +141,9 @@ export default function App() {
     </main>
     {deleting && <DeleteProjectDialog name={deleting.name} disabled={autosave.busy} onClose={() => setDeleting(null)} onDelete={() => autosave.remove(deleting.id)} />}
     {newCanvas && <NewCanvasDialog disabled={autosave.busy} onClose={() => setNewCanvas(false)} onCreate={(w, h, name) => {
-      try { void autosave.create({ ...createDocument(w, h), name, kind: 'character' }).then((created) => { if (created) { setTool('pen'); setCenterMode('vertical'); setZoom(1); setNewCanvas(false); setError(''); } }); }
+      try { void autosave.create(createCharacter(w, h, name)).then((created) => { if (created) { setTool('pen'); setCenterMode('vertical'); setZoom(1); setNewCanvas(false); setError(''); } }); }
       catch { setError('幅・高さは1〜256の整数で指定してください。'); }
     }} />}
-    {png && <ExportDialog blob={png} filename={`pixel-studio-${width}x${height}.png`} onClose={() => setPng(null)} />}
+    {png && <ExportDialog blob={png} filename={`pixel-studio-${width * (state.document.frames ? 3 : 1)}x${height * (state.document.frames ? 4 : 1)}.png`} onClose={() => setPng(null)} />}
   </div>;
 }

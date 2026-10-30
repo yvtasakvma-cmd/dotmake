@@ -120,7 +120,7 @@ test('switches directional grids and centre lines without changing pixels or the
   await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   const result = await image.evaluate((img: HTMLImageElement) => {
     const c = document.createElement('canvas'); c.width = 32; c.height = 32;
-    c.getContext('2d')!.drawImage(img, 0, 0);
+    c.getContext('2d')!.drawImage(img, 32, 0, 32, 32, 0, 0, 32, 32);
     return c.toDataURL();
   });
   expect(result).toBe(before);

@@ -1,4 +1,5 @@
 import type { Color, PixelDocument, Point } from '../model/document';
+import { withPixels } from '../model/document';
 
 // Integer Bresenham interpolation keeps fast pointer movements connected.
 // Out-of-bounds pixels are ignored, so captured pointers can leave/re-enter.
@@ -33,7 +34,7 @@ export function drawLine(document: PixelDocument, from: Point, to: Point, color:
     if (twiceError >= dy) { error += dy; x += sx; }
     if (twiceError <= dx) { error += dx; y += sy; }
   }
-  return pixels ? { ...document, pixels } : document;
+  return pixels ? withPixels(document, pixels) : document;
 }
 
 export function clientToPixel(clientX: number, clientY: number, rect: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>, width: number, height: number): Point {

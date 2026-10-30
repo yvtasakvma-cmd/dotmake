@@ -18,7 +18,7 @@ export function CharacterLibrary({ ready, projects, activeId, clipboardName, mes
       {!projects.length && <p>まだキャラクターがありません。「新規キャラクター」から作れます。</p>}
       {resumeId && <button disabled={!ready} onClick={() => onOpen(resumeId)}>保存した作品を続ける</button>}
       <ul className="project-list">{projects.map((project) => <li key={project.id} data-project-id={project.id}>
-        <article><h3>{project.name}</h3><p>{project.kind === 'character' ? 'キャラクター' : '以前の画像'} · {project.width} × {project.height} px</p><time dateTime={new Date(project.updatedAt).toISOString()}>更新 {new Date(project.updatedAt).toLocaleString('ja-JP')}</time>
+        <article><h3>{project.name}</h3><p>{project.kind === 'character' ? 'キャラクター' : '以前の画像'} · {project.width} × {project.height} px{project.frameCount === 12 && ' · 12コマ'}</p><time dateTime={new Date(project.updatedAt).toISOString()}>更新 {new Date(project.updatedAt).toLocaleString('ja-JP')}</time>
           <div className="project-actions"><button className="primary" disabled={!ready} aria-label={`${project.name}を開く`} onClick={() => onOpen(project.id)}>続きから編集</button><button disabled={!ready} aria-label={`${project.name}をコピー`} onClick={() => onCopy(project.id)}>コピー</button><button className="danger-button" disabled={!ready} aria-label={`${project.name}を削除`} onClick={() => onDelete(project)}>削除</button></div></article>
       </li>)}</ul>
       <p className="setup-hint">保存先はこの端末です。コピーは画像サイズと画素の控えで、元の作品を消しても貼り付けられます。</p>

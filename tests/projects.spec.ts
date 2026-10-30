@@ -125,6 +125,10 @@ test('single-slot version 1 data and palette migrate once, remain editable and r
   await page.goto('.'); await ready(page); await expect(page.locator('.project-list li')).toHaveCount(1);
   await page.getByRole('button', { name: '以前の勇者を開く', exact: true }).click();
   expect(await pixel(page, 3, 3)).toEqual([231,121,88,255]);
+  await expect(page.getByLabel('編集中のコマ')).toHaveText('正面・直立');
+  await page.getByRole('button', { name: '次のポーズ', exact: true }).click();
+  expect(await pixel(page, 3, 3)).toEqual([0,0,0,0]);
+  await page.getByRole('button', { name: '前のポーズ', exact: true }).click();
   await expect(page.getByRole('button', { name: '追加色 #ab12cd', exact: true })).toBeVisible();
   await draw(page, 4, 4); await saved(page); await back(page); await create(page, '新しい仲間'); await back(page);
   await page.reload(); await ready(page); await expect(page.locator('.project-list li')).toHaveCount(2);

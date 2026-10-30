@@ -761,3 +761,20 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
 @media (max-height: 500px) and (orientation: landscape) {
   .tool-buttons { grid-template-columns: 1fr 1fr; }
 }
+
+.frame-navigation { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.frame-nav-row { display: flex; align-items: center; gap: 6px; }
+.frame-nav-row > output { flex: 1; min-width: 0; text-align: center; font-size: 13px; font-weight: 600; }
+.direction-buttons { display: flex; gap: 4px; margin-right: auto; }
+.frame-nav-row button { min-width: 44px; padding: 8px; }
+.frame-copy-actions { display: flex; gap: 6px; margin: 10px 0 0; }
+.frame-copy-actions button { flex: 1; font-size: 11px; padding: 8px 4px; }
+.frame-navigation summary { padding: 12px 0; min-height: 44px; font-size: 12px; cursor: pointer; }
+.frame-table-wrap { overflow: auto; }
+.frame-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.frame-table th, .frame-table td { padding: 3px; text-align: center; }
+.frame-table button { width: 100%; min-width: 44px; padding: 8px 4px; }
+.frame-table .selected { background: #f5d790; border-color: #b89647; }
+@media (max-width: 380px) { .frame-nav-row { gap: 2px; } .frame-nav-row > output { font-size: 11px; } .direction-buttons { gap: 2px; } }
+
+.frame-thumbnail { display: block; width: 48px; height: 48px; max-width: 100%; margin: 0 auto 4px; object-fit: contain; image-rendering: pixelated; background-color: #fff; background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0); background-size: 12px 12px; }

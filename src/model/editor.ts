@@ -1,6 +1,6 @@
 import { drawLine } from '../drawing/stroke';
 import { floodFill } from '../drawing/fill';
-import { createDocument, type Color, type PixelDocument, type Point } from './document';
+import { createDocument, selectFrame, withPixels, type Color, type PixelDocument, type Point } from './document';
 import { copyRegion, flipRegion, moveRegion, placeRegion, rectangle, translated, type PixelRegion, type Rect } from '../drawing/selection';
 
 export const HISTORY_LIMIT = 50;
@@ -10,11 +10,15 @@ export interface EditorState {
   readonly future: readonly PixelDocument[];
   readonly selection: Rect | null;
   readonly regionClipboard: PixelRegion | null;
+  readonly frameClipboard: PixelRegion | null;
   readonly floating: { base: PixelDocument; region: PixelRegion } | null;
   readonly stroke: { readonly before: PixelDocument; readonly last: Point; readonly color: Color; readonly brushSize: number } | null;
 }
 
 export type EditorAction =
+  | { type: 'frame'; index: number }
+  | { type: 'copy-frame' }
+  | { type: 'paste-frame' }
   | { type: 'selection'; rect: Rect | null }
   | { type: 'copy-region' }
   | { type: 'paste-region' }
@@ -32,7 +36,7 @@ export type EditorAction =
   | { type: 'redo' };
 
 export function createEditor(): EditorState {
-  return { document: createDocument(), past: [], future: [], stroke: null, selection: null, regionClipboard: null, floating: null };
+  return { document: createDocument(), past: [], future: [], stroke: null, selection: null, regionClipboard: null, frameClipboard: null, floating: null };
 }
 
 function commitImage(state: EditorState, document: PixelDocument, before = state.document): EditorState {
@@ -43,6 +47,16 @@ function commitImage(state: EditorState, document: PixelDocument, before = state
 
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
+    case 'frame':
+      return state.stroke || state.floating ? state : { ...state, document: selectFrame(state.document, action.index), selection: null };
+    case 'copy-frame':
+      return state.stroke || state.floating ? state : { ...state, frameClipboard: { width: state.document.width, height: state.document.height, pixels: state.document.pixels.slice() } };
+    case 'paste-frame': {
+      const source = state.frameClipboard;
+      if (state.stroke || state.floating || !source || source.width !== state.document.width || source.height !== state.document.height) return state;
+      if (source.pixels.every((value, i) => value === state.document.pixels[i])) return { ...state, selection: null };
+      return { ...commitImage(state, withPixels(state.document, source.pixels.slice())), selection: null };
+    }
     case 'cancel-stroke':
       return state.stroke ? { ...state, document: state.stroke.before, stroke: null } : state;
     case 'selection': {

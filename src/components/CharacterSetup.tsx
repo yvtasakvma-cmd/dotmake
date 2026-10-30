@@ -14,7 +14,7 @@ export function CharacterSetup({ disabled, onBack, onCreate }: {
       <fieldset className="setup-fields" disabled={disabled}><label className="project-name-input">作品名<input value={name} maxLength={40} onChange={(event) => setName(event.target.value)} /></label>
       <div className="preset-buttons">{[16, 32, 48].map((size) => <button type="button" key={size} onClick={() => { setWidth(String(size)); setHeight(String(size)); }}>{size} × {size}</button>)}</div>
       <div className="size-inputs"><label>幅<input type="number" inputMode="numeric" min="1" max="256" step="1" required value={width} onChange={(event) => setWidth(event.target.value)} /></label><span>×</span><label>高さ<input type="number" inputMode="numeric" min="1" max="256" step="1" required value={height} onChange={(event) => setHeight(event.target.value)} /></label></div>
-      <p className="setup-hint">自由設定：各1〜256 px。透明背景で始めます。</p>
+      <p className="setup-hint">1コマのサイズ：各1〜256 px。4方向×3ポーズ、計12コマを透明背景で作ります。</p>
       <p className="setup-hint">新しい作品として保存します。ほかの作品はそのまま残ります。</p>
       <button type="submit" className="primary create-character">描き始める</button></fieldset>
     </form>

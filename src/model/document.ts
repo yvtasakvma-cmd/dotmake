@@ -12,12 +12,59 @@ export interface PixelDocument {
   readonly width: number;
   readonly height: number;
   readonly pixels: Uint8ClampedArray;
+  readonly frames?: readonly Uint8ClampedArray[];
+  readonly frameIndex?: number;
 }
 
 export const TRANSPARENT: Color = [0, 0, 0, 0];
 
 export function copiedCharacter(document: PixelDocument): PixelDocument {
-  return { ...document, name: (document.name || 'キャラクター').slice(0, 36) + 'のコピー', kind: 'character', pixels: document.pixels.slice() };
+  const character = asCharacter(document);
+  const frames = character.frames!.map((frame) => frame.slice());
+  return { ...character, name: (document.name || 'キャラクター').slice(0, 36) + 'のコピー', frames, pixels: frames[character.frameIndex!] };
+}
+
+export const DIRECTIONS = ['正面', '左向き', '右向き', '後ろ'] as const;
+export const POSES = ['左足', '直立', '右足'] as const;
+export const FRAME_COUNT = 12;
+export const DEFAULT_FRAME = 1;
+
+export function asCharacter(document: PixelDocument): PixelDocument {
+  if (document.frames) return document;
+  const frames = Array.from({ length: FRAME_COUNT }, () => new Uint8ClampedArray(document.width * document.height * 4));
+  frames[DEFAULT_FRAME] = document.pixels.slice();
+  return { ...document, kind: 'character', frames, frameIndex: DEFAULT_FRAME, pixels: frames[DEFAULT_FRAME] };
+}
+
+export function createCharacter(width = 32, height = 32, name = '新しいキャラクター'): PixelDocument {
+  return asCharacter({ ...createDocument(width, height), name });
+}
+
+export function withPixels(document: PixelDocument, pixels: Uint8ClampedArray): PixelDocument {
+  if (pixels === document.pixels) return document;
+  if (!document.frames) return { ...document, pixels };
+  const frames = [...document.frames];
+  frames[document.frameIndex!] = pixels;
+  return { ...document, pixels, frames };
+}
+
+export function selectFrame(document: PixelDocument, frameIndex: number): PixelDocument {
+  if (!document.frames || !Number.isInteger(frameIndex) || frameIndex < 0 || frameIndex >= FRAME_COUNT || frameIndex === document.frameIndex) return document;
+  return { ...document, frameIndex, pixels: document.frames[frameIndex] };
+}
+
+export function spriteSheet(document: PixelDocument): PixelDocument {
+  if (!document.frames) return document;
+  const width = document.width * 3, height = document.height * 4;
+  const pixels = new Uint8ClampedArray(width * height * 4);
+  for (let index = 0; index < FRAME_COUNT; index++) {
+    const left = index % 3 * document.width, top = Math.floor(index / 3) * document.height;
+    for (let y = 0; y < document.height; y++) {
+      const start = y * document.width * 4;
+      pixels.set(document.frames[index].subarray(start, start + document.width * 4), ((top + y) * width + left) * 4);
+    }
+  }
+  return { width, height, pixels };
 }
 
 export function createDocument(width = 32, height = 32): PixelDocument {

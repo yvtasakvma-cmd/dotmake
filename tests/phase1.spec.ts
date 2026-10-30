@@ -100,16 +100,16 @@ test('exports an actual transparent PNG with exact dimensions and RGBA values', 
   const result = await img.evaluate((image: HTMLImageElement) => {
     const c = document.createElement('canvas'); c.width = image.naturalWidth; c.height = image.naturalHeight;
     const ctx = c.getContext('2d')!; ctx.drawImage(image, 0, 0);
-    return { width: c.width, height: c.height, empty: [...ctx.getImageData(0, 0, 1, 1).data], ink: [...ctx.getImageData(23, 15, 1, 1).data] };
+    return { width: c.width, height: c.height, empty: [...ctx.getImageData(0, 0, 1, 1).data], ink: [...ctx.getImageData(47, 15, 1, 1).data] };
   });
-  expect(result).toEqual({ width: 24, height: 16, empty: [0, 0, 0, 0], ink: [231, 121, 88, 255] });
+  expect(result).toEqual({ width: 72, height: 64, empty: [0, 0, 0, 0], ink: [231, 121, 88, 255] });
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('link', { name: 'PNGを保存', exact: true }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('pixel-studio-24x16.png');
+  expect(download.suggestedFilename()).toBe('pixel-studio-72x64.png');
   const bytes = await readFile((await download.path())!);
   expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
-  expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([24, 16]);
+  expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([72, 64]);
 });
 
 test('zoom and pan change only the view and keep pointer coordinates accurate', async ({ page, isMobile }) => {

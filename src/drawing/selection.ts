@@ -1,4 +1,5 @@
 import type { PixelDocument, Point } from '../model/document';
+import { withPixels } from '../model/document';
 
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface PixelRegion { width: number; height: number; pixels: Uint8ClampedArray }
@@ -45,7 +46,7 @@ export function placeRegion(document: PixelDocument, region: PixelRegion, at: Po
     const offset = (y * region.width + x) * 4;
     pixels.set(region.pixels.subarray(offset, offset + 4), (dy * document.width + dx) * 4);
   }
-  return pixels.every((value, i) => value === document.pixels[i]) ? document : { ...document, pixels };
+  return pixels.every((value, i) => value === document.pixels[i]) ? document : withPixels(document, pixels);
 }
 export function moveRegion(document: PixelDocument, rect: Rect, target: Rect): PixelDocument {
   if (rect.x === target.x && rect.y === target.y) return document;

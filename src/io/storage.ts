@@ -1,4 +1,4 @@
-import { createDocument, type PixelDocument } from '../model/document';
+import { asCharacter, createDocument, FRAME_COUNT, type PixelDocument } from '../model/document';
 
 export interface ProjectSummary {
   id: string;
@@ -7,8 +7,9 @@ export interface ProjectSummary {
   width: number;
   height: number;
   updatedAt: number;
+  frameCount: number;
 }
-interface StoredProject extends PixelDocument { id: string; version: 1; updatedAt: number }
+interface StoredProject extends PixelDocument { id: string; version: 1 | 2; updatedAt: number }
 let database: Promise<IDBDatabase> | undefined;
 function open(): Promise<IDBDatabase> {
   database ??= new Promise<IDBDatabase>((resolve, reject) => {
@@ -32,14 +33,21 @@ function open(): Promise<IDBDatabase> {
 function decode(value: unknown): PixelDocument {
   if (!value || typeof value !== 'object') throw new Error('保存データの形式を読み取れません。');
   const record = value as Partial<StoredProject>;
-  if (record.version !== 1 || !(record.pixels instanceof Uint8ClampedArray)) throw new Error('保存データの形式を読み取れません。');
+  if ((record.version !== 1 && record.version !== 2) || !(record.pixels instanceof Uint8ClampedArray)) throw new Error('保存データの形式を読み取れません。');
   const document = createDocument(record.width!, record.height!);
   if (document.pixels.length !== record.pixels.length) throw new Error('保存データの画素数が正しくありません。');
   document.pixels.set(record.pixels);
-  return { ...document, name: typeof record.name === 'string' && record.name.trim() ? record.name.slice(0, 40) : '保存した作品', ...(record.kind === 'character' ? { kind: 'character' as const } : {}) };
+  const named = { ...document, name: typeof record.name === 'string' && record.name.trim() ? record.name.slice(0, 40) : '保存した作品', ...(record.kind === 'character' ? { kind: 'character' as const } : {}) };
+  if (record.version === 2) {
+    if (record.kind !== 'character' || !Array.isArray(record.frames) || record.frames.length !== FRAME_COUNT || !Number.isInteger(record.frameIndex) || record.frameIndex! < 0 || record.frameIndex! >= FRAME_COUNT || !record.frames.every((frame: unknown) => frame instanceof Uint8ClampedArray && frame.length === document.pixels.length)) throw new Error('12コマの保存データを読み取れません。');
+    const frames = record.frames.map((frame: Uint8ClampedArray) => frame.slice());
+    if (!record.pixels.every((value, i) => value === frames[record.frameIndex!][i])) throw new Error('編集中のコマの保存データが一致しません。');
+    return { ...named, frames, frameIndex: record.frameIndex!, pixels: frames[record.frameIndex!] };
+  }
+  return record.kind === 'character' ? asCharacter(named) : named;
 }
 function summary(record: StoredProject): ProjectSummary {
-  return { id: record.id, name: record.name || '保存した作品', kind: record.kind, width: record.width, height: record.height, updatedAt: record.updatedAt };
+  return { id: record.id, name: record.name || '保存した作品', kind: record.kind, width: record.width, height: record.height, updatedAt: record.updatedAt, frameCount: record.frames ? FRAME_COUNT : 1 };
 }
 
 // Copy the old single-slot image exactly once. Keep its original as a backup.
@@ -64,7 +72,7 @@ async function migrateLegacy(db: IDBDatabase): Promise<string> {
         const projects = tx.objectStore('projects');
         const existing = projects.get('legacy-current');
         existing.onsuccess = () => {
-          if (existing.result === undefined) projects.put({ ...document, id: 'legacy-current', version: 1, updatedAt: Date.now() } satisfies StoredProject);
+          if (existing.result === undefined) projects.put({ ...document, id: 'legacy-current', version: document.frames ? 2 : 1, updatedAt: Date.now() } satisfies StoredProject);
           documents.put(true, 'projects-migrated');
         };
       };
@@ -89,7 +97,7 @@ export async function loadLibrary(): Promise<{ projects: ProjectSummary[]; warni
         const document = decode(cursor.value);
         const record = cursor.value as StoredProject;
         if (typeof record.id !== 'string' || !record.id || !Number.isFinite(record.updatedAt) || record.updatedAt < 0 || record.updatedAt > 8640000000000000) throw new Error('Invalid project');
-        items.push(summary({ ...document, id: record.id, version: 1, updatedAt: record.updatedAt }));
+        items.push(summary({ ...document, id: record.id, version: document.frames ? 2 : 1, updatedAt: record.updatedAt }));
       } catch { warning = '一部の作品を読めません。元データは保持しています。他の作品は編集できます。'; }
       cursor.continue();
     };
@@ -116,7 +124,7 @@ export async function saveProjectClipboard(document: PixelDocument): Promise<voi
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
-    tx.objectStore('documents').put({ ...document, version: 1 }, 'project-clipboard');
+    tx.objectStore('documents').put({ ...document, version: document.frames ? 2 : 1 }, 'project-clipboard');
   });
 }
 
@@ -151,7 +159,7 @@ export async function loadProject(id: string): Promise<PixelDocument> {
 
 export async function saveProject(id: string, document: PixelDocument): Promise<ProjectSummary> {
   const db = await open();
-  const record: StoredProject = { ...document, id, version: 1, updatedAt: Date.now() };
+  const record: StoredProject = { ...document, id, version: document.frames ? 2 : 1, updatedAt: Date.now() };
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction('projects', 'readwrite');
     tx.oncomplete = () => resolve();

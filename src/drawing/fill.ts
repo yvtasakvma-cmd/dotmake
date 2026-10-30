@@ -1,4 +1,5 @@
 import type { Color, PixelDocument, Point } from '../model/document';
+import { withPixels } from '../model/document';
 
 export function sampleColor(document: PixelDocument, point: Point): Color | null {
   const { x, y } = point;
@@ -29,5 +30,5 @@ export function floodFill(document: PixelDocument, point: Point, color: Color): 
     if (index >= document.width) add(index - document.width);
     if (index < document.width * (document.height - 1)) add(index + document.width);
   }
-  return { ...document, pixels };
+  return withPixels(document, pixels);
 }
