@@ -133,12 +133,19 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
   };
   const paste = () => clipboard ? create(copiedCharacter(clipboard)) : Promise.resolve(false);
 
+  // A document can change before its autosave effect runs. Never show the
+  // previous image's saved status while the current image is still unsaved.
+  const currentStatus = activeId && !busy && !failed
+    ? state.stroke || state.floating ? '編集中…'
+      : saved.current?.id !== activeId || saved.current.document !== state.document || pending.current > 0 ? '保存中…' : status
+    : status;
+
   useEffect(() => {
-    if (!activeId || status === 'この端末に保存済み') return;
+    if (!activeId || currentStatus === 'この端末に保存済み') return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [activeId, status]);
+  }, [activeId, currentStatus]);
 
-  return { ready, busy, status, failed, warning, projects, activeId, hasProject: activeId !== null, open, create, copy, remove, paste, clipboard, libraryMessage };
+  return { ready, busy, status: currentStatus, failed, warning, projects, activeId, hasProject: activeId !== null, open, create, copy, remove, paste, clipboard, libraryMessage };
 }

@@ -176,6 +176,11 @@ test('undo during a pending transaction persists the final image rather than an 
   await expect(page.getByText('保存中…', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '元に戻す', exact: true }).click();
   expect(await pixel(page, 3, 3)).toEqual([0,0,0,0]);
+  await page.getByRole('button', { name: 'やり直す', exact: true }).click();
+  expect(await pixel(page, 3, 3)).toEqual([0,0,0,255]);
+  await expect(page.getByText('この端末に保存済み', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('保存中…', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '元に戻す', exact: true }).click();
   await page.evaluate(() => { (window as unknown as { saveTestControl: { hold: boolean } }).saveTestControl.hold = false; });
   await saved(page); await page.reload(); await ready(page);
   await page.getByRole('button', { name: '保存順序を開く', exact: true }).click();
