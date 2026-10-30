@@ -16,6 +16,10 @@ export interface PixelDocument {
 
 export const TRANSPARENT: Color = [0, 0, 0, 0];
 
+export function copiedCharacter(document: PixelDocument): PixelDocument {
+  return { ...document, name: (document.name || 'キャラクター').slice(0, 36) + 'のコピー', kind: 'character', pixels: document.pixels.slice() };
+}
+
 export function createDocument(width = 32, height = 32): PixelDocument {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 256 || height > 256) {
     throw new RangeError('キャンバスの幅・高さは1〜256の整数にしてください。');

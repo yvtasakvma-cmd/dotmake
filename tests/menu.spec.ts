@@ -1,11 +1,11 @@
+import { enterLibrary } from './navigation';
 import { expect, test, type Page } from '@playwright/test';
 
 async function menu(page: Page) {
-  await expect(page.getByRole('heading', { name: '何を作りますか？' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'キャラクターを作る', exact: false })).toBeEnabled();
+  await enterLibrary(page);
 }
 async function start(page: Page) {
-  await page.getByRole('button', { name: 'キャラクターを作る', exact: false }).click();
+  await page.getByRole('button', { name: '新規キャラクター', exact: true }).click();
 }
 async function pixel(page: Page, x: number, y: number) {
   return page.locator('canvas').evaluate((c: HTMLCanvasElement, p) => [...c.getContext('2d')!.getImageData(p.x, p.y, 1, 1).data], { x, y });
@@ -19,7 +19,8 @@ async function draw(page: Page) {
 }
 
 test('first menu has one available category and does not autosave a blank image', async ({ page }) => {
-  await page.goto('.'); await menu(page);
+  await page.goto('.');
+  await expect(page.getByRole('button', { name: 'キャラクターを作る', exact: false })).toBeEnabled();
   await expect(page.getByRole('button', { name: '敵キャラを作る', exact: false })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'マップチップセットを作る', exact: false })).toBeDisabled();
   await expect(page.getByRole('button', { name: '保存した作品を続ける' })).toHaveCount(0);
@@ -29,10 +30,10 @@ test('first menu has one available category and does not autosave a blank image'
     r.onsuccess = () => { const db = r.result, tx = db.transaction('documents'); const q = tx.objectStore('documents').get('current'); q.onsuccess = () => { resolve(q.result !== undefined); db.close(); }; };
   }));
   expect(exists).toBe(false);
-  await start(page);
+  await menu(page); await start(page);
   await expect(page.getByLabel('作品名', { exact: true })).toHaveValue('新しいキャラクター');
   await expect(page.getByLabel('幅', { exact: true })).toHaveValue('32');
-  await page.getByRole('button', { name: 'メニューへ戻る' }).click();
+  await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click();
   await menu(page);
   await expect(page.getByRole('button', { name: '保存した作品を続ける' })).toHaveCount(0);
 });
@@ -46,7 +47,7 @@ test('named character creation, menu resume and reload preserve image and metada
   await expect(page.locator('canvas')).toHaveAttribute('width', '48');
   await expect(page.locator('[data-guide="center-vertical"]')).toHaveAttribute('d', 'M24 0V48');
   await draw(page);
-  await page.getByRole('button', { name: 'メニューへ戻る' }).click();
+  await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click();
   await menu(page);
   await page.getByRole('button', { name: '保存した作品を続ける' }).click();
   expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
@@ -63,14 +64,14 @@ test('new characters are independent and cancelling setup keeps all earlier work
   await page.goto('.'); await menu(page); await start(page);
   await page.getByLabel('作品名', { exact: true }).fill('剣士');
   await page.getByRole('button', { name: '描き始める' }).click(); await draw(page);
-  await page.getByRole('button', { name: 'メニューへ戻る' }).click(); await start(page);
+  await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click(); await start(page);
   await page.getByLabel('幅', { exact: true }).fill('0');
   await page.getByRole('button', { name: '描き始める' }).click();
   await expect(page.getByLabel('作品名', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'メニューへ戻る' }).click();
+  await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click();
   await page.getByRole('button', { name: '剣士を開く', exact: true }).click();
   expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
-  await page.getByRole('button', { name: 'メニューへ戻る' }).click(); await start(page);
+  await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click(); await start(page);
   await page.getByLabel('作品名', { exact: true }).fill('魔法使い');
   await page.getByLabel('幅', { exact: true }).fill('24');
   await page.getByLabel('高さ', { exact: true }).fill('48');
@@ -79,13 +80,13 @@ test('new characters are independent and cancelling setup keeps all earlier work
   await expect(page.locator('canvas')).toHaveAttribute('width', '24');
   expect(await pixel(page, 4, 4)).toEqual([0, 0, 0, 0]);
   await page.getByRole('button', { name: 'コーラル #e77958' }).click(); await draw(page);
-  await page.getByRole('button', { name: 'メニューへ戻る' }).click();
+  await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click();
   await expect(page.locator('.project-list li')).toHaveCount(2);
   await page.getByRole('button', { name: '剣士を開く', exact: true }).click();
   await expect(page.locator('canvas')).toHaveAttribute('width', '32');
   expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: 'メニューへ戻る' }).click();
+  await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click();
   await page.getByRole('button', { name: '魔法使いを開く', exact: true }).click();
   expect(await pixel(page, 4, 4)).toEqual([231, 121, 88, 255]);
 });

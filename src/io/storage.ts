@@ -72,7 +72,7 @@ async function migrateLegacy(db: IDBDatabase): Promise<string> {
   });
 }
 
-export async function loadLibrary(): Promise<{ projects: ProjectSummary[]; warning: string }> {
+export async function loadLibrary(): Promise<{ projects: ProjectSummary[]; warning: string; clipboard: PixelDocument | null }> {
   const db = await open();
   let warning = await migrateLegacy(db);
   const projects = await new Promise<ProjectSummary[]>((resolve, reject) => {
@@ -95,7 +95,46 @@ export async function loadLibrary(): Promise<{ projects: ProjectSummary[]; warni
     };
   });
   projects.sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id));
-  return { projects, warning };
+  let clipboard: PixelDocument | null = null;
+  try {
+    const value = await new Promise<unknown>((resolve, reject) => {
+      const tx = db.transaction('documents', 'readonly');
+      const request = tx.objectStore('documents').get('project-clipboard');
+      tx.oncomplete = () => resolve(request.result);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    if (value !== undefined) clipboard = decode(value);
+  } catch { warning = [warning, 'コピーしたデータを読めません。保存済みの作品は利用できます。'].filter(Boolean).join(' '); }
+  return { projects, warning, clipboard };
+}
+
+export async function saveProjectClipboard(document: PixelDocument): Promise<void> {
+  const db = await open();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('documents', 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+    tx.objectStore('documents').put({ ...document, version: 1 }, 'project-clipboard');
+  });
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  const db = await open();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(['projects', 'documents'], 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+    try {
+      tx.objectStore('projects').delete(id);
+      if (id === 'legacy-current') {
+        tx.objectStore('documents').delete('current');
+        tx.objectStore('documents').put(true, 'projects-migrated');
+      }
+    } catch (error) { tx.abort(); reject(error); }
+  });
 }
 
 export async function loadProject(id: string): Promise<PixelDocument> {

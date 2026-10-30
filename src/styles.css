@@ -733,3 +733,11 @@ select:focus-visible {
 .project-list h3 { font-size: 16px; margin: 0 0 8px; overflow-wrap: anywhere; }
 .project-list p { font-size: 12px; margin: 8px 0; }
 .project-list time { display: block; font-size: 11px; color: #647057; margin-bottom: 12px; }
+
+.character-library { max-width: 600px; margin: 24px auto; }
+.character-library > h1 { font-size: 22px; margin: 24px 0; }
+.library-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.project-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.project-actions > button:first-child { grid-column: 1 / -1; }
+.danger-button { color: #9c3929; border-color: #cfae9f; }
+button.danger-button:not(:disabled):hover { background: #fae8df; }

@@ -8,7 +8,7 @@ export function CharacterSetup({ disabled, onBack, onCreate }: {
   const [width, setWidth] = useState('32');
   const [height, setHeight] = useState('32');
   return <section className="character-setup" aria-labelledby="character-title">
-    <button disabled={disabled} onClick={onBack}>メニューへ戻る</button>
+    <button disabled={disabled} onClick={onBack}>キャラクター一覧へ戻る</button>
     <h1 id="character-title">キャラクターを作る</h1>
     <form aria-busy={disabled} onSubmit={(event) => { event.preventDefault(); onCreate(name.trim() || '新しいキャラクター', Number(width), Number(height)); }}>
       <fieldset className="setup-fields" disabled={disabled}><label className="project-name-input">作品名<input value={name} maxLength={40} onChange={(event) => setName(event.target.value)} /></label>

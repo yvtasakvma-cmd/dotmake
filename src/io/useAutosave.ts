@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch } from 'react';
 import type { EditorAction, EditorState } from '../model/editor';
-import type { PixelDocument } from '../model/document';
-import { loadLibrary, loadProject, saveProject, type ProjectSummary } from './storage';
+import { copiedCharacter, createDocument, type PixelDocument } from '../model/document';
+import { deleteProject, loadLibrary, loadProject, saveProject, saveProjectClipboard, type ProjectSummary } from './storage';
 
 export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>) {
   const [ready, setReady] = useState(false);
@@ -11,6 +11,8 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
   const [status, setStatus] = useState('読み込み中…');
   const [failed, setFailed] = useState(false);
   const [warning, setWarning] = useState('');
+  const [clipboard, setClipboard] = useState<PixelDocument | null>(null);
+  const [libraryMessage, setLibraryMessage] = useState('');
   const documentRef = useRef(state.document);
   documentRef.current = state.document;
   const activeRef = useRef<string | null>(null);
@@ -25,6 +27,7 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
     void loadLibrary().then((library) => {
       if (!active) return;
       setProjects(library.projects); setWarning(library.warning);
+      setClipboard(library.clipboard);
       setStatus('作品を選ぶか、新しく作成してください'); setReady(true);
     }).catch(() => {
       if (!active) return;
@@ -97,6 +100,39 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
     finally { switching.current = false; setBusy(false); }
   };
 
+  const copy = async (id: string) => {
+    if (!ready || switching.current || state.stroke) return false;
+    switching.current = true; setBusy(true); setLibraryMessage('');
+    try {
+      if (!await flush()) return false;
+      const document = await loadProject(id);
+      await saveProjectClipboard(document);
+      setClipboard(document); setLibraryMessage('作品データをコピーしました。「貼り付けて新規作成」で別のキャラクターを作れます。');
+      return true;
+    } catch { setLibraryMessage('コピーできませんでした。前のコピーと保存済み作品は保持しています。'); return false; }
+    finally { switching.current = false; setBusy(false); }
+  };
+  const remove = async (id: string) => {
+    if (!ready || switching.current || state.stroke) return false;
+    switching.current = true; setBusy(true); setLibraryMessage('');
+    try {
+      // Wait for queued writes before deletion, so a late autosave cannot
+      // recreate a deleted project.
+      if (!await flush()) return false;
+      await deleteProject(id);
+      if (activeRef.current === id) {
+        activeRef.current = null; saved.current = null; setActiveId(null);
+        dispatch({ type: 'replace', document: createDocument() });
+        ++sequence.current; setStatus('作品を選ぶか、新しく作成してください'); setFailed(false);
+      }
+      setProjects((previous) => previous.filter((project) => project.id !== id));
+      setLibraryMessage('作品を削除しました。');
+      return true;
+    } catch { setLibraryMessage('削除できませんでした。作品は一覧に残しています。'); return false; }
+    finally { switching.current = false; setBusy(false); }
+  };
+  const paste = () => clipboard ? create(copiedCharacter(clipboard)) : Promise.resolve(false);
+
   useEffect(() => {
     if (!activeId || status === 'この端末に保存済み') return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
@@ -104,5 +140,5 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
     return () => window.removeEventListener('beforeunload', warn);
   }, [activeId, status]);
 
-  return { ready, busy, status, failed, warning, projects, activeId, hasProject: activeId !== null, open, create };
+  return { ready, busy, status, failed, warning, projects, activeId, hasProject: activeId !== null, open, create, copy, remove, paste, clipboard, libraryMessage };
 }

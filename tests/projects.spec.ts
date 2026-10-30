@@ -1,13 +1,14 @@
+import { enterLibrary } from './navigation';
 import { expect, test, type Page } from '@playwright/test';
 
 async function create(page: Page, name: string, width = 32) {
-  await page.getByRole('button', { name: 'キャラクターを作る', exact: false }).click();
+  await page.getByRole('button', { name: '新規キャラクター', exact: true }).click();
   await page.getByLabel('作品名', { exact: true }).fill(name);
   await page.getByLabel('幅', { exact: true }).fill(String(width));
   await page.getByRole('button', { name: '描き始める', exact: true }).click();
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
 }
-async function back(page: Page) { await page.getByRole('button', { name: 'メニューへ戻る', exact: true }).click(); }
+async function back(page: Page) { await page.getByRole('button', { name: 'キャラクター一覧へ戻る', exact: true }).click(); }
 async function draw(page: Page, x: number, y: number, color?: string) {
   if (color) await page.getByLabel('自由な色', { exact: true }).fill(color);
   const c = page.locator('canvas'); await c.scrollIntoViewIfNeeded();
@@ -18,7 +19,7 @@ async function pixel(page: Page, x: number, y: number) {
   return page.locator('canvas').evaluate((c: HTMLCanvasElement, p) => [...c.getContext('2d')!.getImageData(p.x, p.y, 1, 1).data], { x, y });
 }
 async function saved(page: Page) { await expect(page.getByText('この端末に保存済み', { exact: true })).toBeVisible(); }
-async function ready(page: Page) { await expect(page.getByRole('button', { name: 'キャラクターを作る', exact: false })).toBeEnabled(); }
+async function ready(page: Page) { await enterLibrary(page); }
 
 test('several characters survive reload and offline editing without crossing saves', async ({ page, context }) => {
   await page.goto('.'); await ready(page);
@@ -84,8 +85,8 @@ test('failed saves block project changes and keep unsaved pixels available for P
   await expect(page.getByText('自動保存できません。', { exact: false })).toBeVisible();
   await back(page);
   await page.getByRole('button', { name: 'Bを開く', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '何を作りますか？' })).toBeVisible();
-  await page.getByRole('button', { name: 'キャラクターを作る', exact: false }).click();
+  await expect(page.getByRole('heading', { name: 'キャラクター', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '新規キャラクター', exact: true }).click();
   await page.getByLabel('作品名', { exact: true }).fill('失敗するC');
   await page.getByRole('button', { name: '描き始める', exact: true }).click();
   await expect(page.getByLabel('作品名', { exact: true })).toBeEnabled();
@@ -99,7 +100,7 @@ test('failed saves block project changes and keep unsaved pixels available for P
 test('new project write failure does not create a phantom entry or lose the previous image', async ({ page }) => {
   await page.goto('.'); await ready(page); await create(page, '保存済み'); await draw(page, 3, 3); await saved(page); await back(page);
   await page.evaluate(() => { IDBObjectStore.prototype.put = () => { throw new DOMException('Full', 'QuotaExceededError'); }; });
-  await page.getByRole('button', { name: 'キャラクターを作る', exact: false }).click();
+  await page.getByRole('button', { name: '新規キャラクター', exact: true }).click();
   await page.getByRole('button', { name: '描き始める', exact: true }).click();
   await expect(page.getByText('新しい作品を保存できません。', { exact: false })).toBeVisible();
   await back(page); await expect(page.locator('.project-list li')).toHaveCount(1);
