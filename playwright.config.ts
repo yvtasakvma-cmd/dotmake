@@ -8,7 +8,7 @@ export default defineConfig({
   workers: 2,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: 'list',
+  reporter: process.env.CI ? [['list'], ['github']] : 'list',
   use: {
     baseURL: previewURL,
     trace: 'retain-on-failure',
