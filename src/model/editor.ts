@@ -7,13 +7,13 @@ export interface EditorState {
   readonly document: PixelDocument;
   readonly past: readonly PixelDocument[];
   readonly future: readonly PixelDocument[];
-  readonly stroke: { readonly before: PixelDocument; readonly last: Point; readonly color: Color } | null;
+  readonly stroke: { readonly before: PixelDocument; readonly last: Point; readonly color: Color; readonly brushSize: number } | null;
 }
 
 export type EditorAction =
   | { type: 'replace'; document: PixelDocument }
   | { type: 'fill'; point: Point; color: Color }
-  | { type: 'begin'; point: Point; color: Color }
+  | { type: 'begin'; point: Point; color: Color; brushSize?: number }
   | { type: 'move'; point: Point }
   | { type: 'end' }
   | { type: 'undo' }
@@ -38,14 +38,14 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       if (state.stroke) return state;
       return {
         ...state,
-        document: drawLine(state.document, action.point, action.point, action.color),
-        stroke: { before: state.document, last: action.point, color: action.color },
+        document: drawLine(state.document, action.point, action.point, action.color, action.brushSize),
+        stroke: { before: state.document, last: action.point, color: action.color, brushSize: action.brushSize ?? 1 },
       };
     case 'move':
       if (!state.stroke) return state;
       return {
         ...state,
-        document: drawLine(state.document, state.stroke.last, action.point, state.stroke.color),
+        document: drawLine(state.document, state.stroke.last, action.point, state.stroke.color, state.stroke.brushSize),
         stroke: { ...state.stroke, last: action.point },
       };
     case 'end':

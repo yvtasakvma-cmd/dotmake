@@ -4,10 +4,15 @@ import { PixelCanvas } from './components/PixelCanvas';
 import { NewCanvasDialog } from './components/NewCanvasDialog';
 import { ExportDialog } from './components/ExportDialog';
 import { PwaStatus } from './components/PwaStatus';
+import { PalettePanel } from './components/PalettePanel';
+import { BrushControls } from './components/BrushControls';
+import { GuideControls } from './components/GuideControls';
+import type { GuideMode } from './drawing/guides';
 import { colorToHex, createDocument, hexToColor, TRANSPARENT, type Tool } from './model/document';
 import { createEditor, editorReducer } from './model/editor';
 import { useAutosave } from './io/useAutosave';
 import { encodePng } from './io/png';
+import { usePalette } from './io/usePalette';
 
 const PALETTE = [
   { hex: '#303b32', name: 'フォレスト' }, { hex: '#f6f4ee', name: 'ミルク' },
@@ -25,6 +30,11 @@ export default function App() {
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState(PALETTE[0].hex);
   const [grid, setGrid] = useState(true);
+  const [gridDirection, setGridDirection] = useState<Exclude<GuideMode, 'off'>>('both');
+  const [centerMode, setCenterMode] = useState<GuideMode>('off');
+  const [penSize, setPenSize] = useState(1);
+  const [eraserSize, setEraserSize] = useState(1);
+  const palette = usePalette();
   const [zoom, setZoom] = useState(1);
   const [newCanvas, setNewCanvas] = useState(false);
   const [png, setPng] = useState<Blob | null>(null);
@@ -34,6 +44,8 @@ export default function App() {
   const drawing = state.stroke !== null;
   const locked = drawing || !autosave.ready;
   const { width, height } = state.document;
+  const gridMode = grid ? gridDirection : 'off';
+  const brushSize = tool === 'eraser' ? eraserSize : penSize;
   const selectColor = (value: string) => { setColor(value); setTool((current) => current === 'fill' ? 'fill' : 'pen'); };
 
   useEffect(() => {
@@ -69,7 +81,7 @@ export default function App() {
         <div className="editor-body">
           <div className="canvas-workspace">
             <div className="canvas-meta"><strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド表示" aria-pressed={grid} onClick={() => setGrid(!grid)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button></div>
-            <PixelCanvas document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} grid={grid} tool={tool} zoom={zoom} disabled={!autosave.ready} dispatch={dispatch}
+            <PixelCanvas document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} disabled={!autosave.ready} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
             <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><div><button aria-label="縮小" disabled={zoom === 1 || locked} onClick={() => setZoom(zoom / 2)}>−</button><output aria-label="拡大率">{zoom}倍</output><button aria-label="拡大" disabled={zoom === 16 || locked} onClick={() => setZoom(zoom * 2)}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
           </div>
@@ -78,17 +90,15 @@ export default function App() {
               <div className="section-label"><h2 id="tools-heading">ツール</h2></div>
               <div className="tool-buttons">{TOOLS.map((item) => <button key={item.tool} className={`tool-button ${tool === item.tool ? 'selected' : ''}`} aria-label={item.label} aria-pressed={tool === item.tool} disabled={locked} onClick={() => setTool(item.tool)}><Icon name={item.tool} size={22} /><span>{item.tool === 'pan' ? '移動' : item.label}</span><kbd>{item.key}</kbd></button>)}</div>
             </section>
-            <section className="palette-section" aria-labelledby="palette-heading">
-              <div className="section-label"><h2 id="palette-heading">色</h2><label className="custom-color">自由な色<input aria-label="自由な色" type="color" value={color} disabled={locked} onChange={(event) => selectColor(event.target.value)} /></label></div>
-              <div className="palette">{PALETTE.map(({ hex, name }) => <button key={hex} className={`swatch ${color === hex ? 'selected' : ''}`} style={{ backgroundColor: hex }} aria-label={`${name} ${hex}`} aria-pressed={color === hex} title={name} disabled={locked} onClick={() => selectColor(hex)} />)}</div>
-              <div className="current-color"><span className="current-color-chip" style={{ backgroundColor: color }} /><span><span className="color-label">選択中の色</span><strong>{color.toUpperCase()}</strong></span><span className="pixel-size">1<span>PX</span></span></div>
-            </section>
+            <BrushControls penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />
+            <GuideControls gridMode={gridMode} centerMode={centerMode} onCenter={setCenterMode} onGrid={(mode) => { setGrid(mode !== 'off'); if (mode !== 'off') setGridDirection(mode); }} />
+            <PalettePanel presets={PALETTE} palette={palette} color={color} disabled={locked} onSelect={selectColor} />
           </aside>
         </div>
       </section>
       <p className={`save-status ${autosave.failed ? 'error' : ''}`} role="status">{autosave.status}</p>
       {error && <p role="alert">{error}</p>}
-      <PwaStatus canUpdate={autosave.status === 'この端末に保存済み' && !drawing} />
+      <PwaStatus canUpdate={autosave.status === 'この端末に保存済み' && !drawing && !palette.busy} />
     </main>
     {newCanvas && <NewCanvasDialog onClose={() => setNewCanvas(false)} onCreate={(w, h) => {
       try { dispatch({ type: 'replace', document: createDocument(w, h) }); autosave.restart(); setZoom(1); setNewCanvas(false); setError(''); }
