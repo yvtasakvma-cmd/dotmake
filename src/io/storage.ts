@@ -179,7 +179,7 @@ export async function loadPalette(): Promise<string[]> {
     tx.onabort = () => reject(tx.error);
   });
   if (value === undefined) return [];
-  if (!Array.isArray(value) || !value.every((color: unknown) => typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color))) {
+  if (!Array.isArray(value) || !value.every((color: unknown) => typeof color === 'string' && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(color))) {
     throw new Error('パレットの形式を読み取れません。');
   }
   return [...new Set((value as string[]).map((color) => color.toLowerCase()))];

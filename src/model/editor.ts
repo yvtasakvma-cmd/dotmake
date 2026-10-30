@@ -1,6 +1,6 @@
 import { drawLine } from '../drawing/stroke';
 import { floodFill } from '../drawing/fill';
-import { colorToHex, createDocument, selectFrame, withPixels, type Color, type PixelDocument, type Point } from './document';
+import { colorToPaintHex, createDocument, selectFrame, withPixels, type Color, type PixelDocument, type Point } from './document';
 import { copyRegion, flipRegion, moveRegion, placeRegion, rectangle, translated, type PixelRegion, type Rect } from '../drawing/selection';
 
 export const HISTORY_LIMIT = 50;
@@ -42,7 +42,7 @@ export function createEditor(): EditorState {
 
 function rememberColor(colors: readonly string[], color: Color): readonly string[] {
   if (color[3] === 0) return colors;
-  const hex = colorToHex(color);
+  const hex = colorToPaintHex(color);
   return [hex, ...colors.filter(item => item !== hex)].slice(0, 5);
 }
 

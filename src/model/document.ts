@@ -6,6 +6,11 @@ export function colorToHex(color: Color): string {
   return '#' + color.slice(0, 3).map((channel) => channel.toString(16).padStart(2, '0')).join('');
 }
 
+// Keep opaque palette entries compatible with the original six-digit format.
+export function colorToPaintHex(color: Color): string {
+  return colorToHex(color) + (color[3] === 255 ? '' : color[3].toString(16).padStart(2, '0'));
+}
+
 export interface PixelDocument {
   readonly name?: string;
   readonly kind?: 'character';
@@ -75,6 +80,6 @@ export function createDocument(width = 32, height = 32): PixelDocument {
 }
 
 export function hexToColor(hex: string): Color {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new TypeError('6桁のHEXカラーが必要です。');
-  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16), 255];
+  if (!/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(hex)) throw new TypeError('6桁または8桁のHEXカラーが必要です。');
+  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16), hex.length === 9 ? parseInt(hex.slice(7, 9), 16) : 255];
 }

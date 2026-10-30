@@ -57,11 +57,11 @@ test('mobile tools sit above the palette and long pressing opens independent bru
   await page.getByRole('slider', { name: 'ペンの太さ', exact: true }).fill('7');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await holdBrush(page, '消しゴム');
-  await expect(page.getByRole('slider')).toHaveValue('1');
-  await page.getByRole('slider').fill('3');
+  await expect(page.getByRole('dialog').getByRole('slider')).toHaveValue('1');
+  await page.getByRole('dialog').getByRole('slider').fill('3');
   await page.keyboard.press('Escape');
   await holdBrush(page, 'ペン');
-  await expect(page.getByRole('slider')).toHaveValue('7');
+  await expect(page.getByRole('dialog').getByRole('slider')).toHaveValue('7');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   expect(await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL())).toBe(before);
   await group.getByRole('button', { name: 'スポイト', exact: true }).tap();

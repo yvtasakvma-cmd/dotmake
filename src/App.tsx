@@ -19,7 +19,7 @@ import { DeleteProjectDialog } from './components/DeleteProjectDialog';
 import type { ProjectSummary } from './io/storage';
 import { CharacterSetup } from './components/CharacterSetup';
 import type { GuideMode } from './drawing/guides';
-import { colorToHex, createCharacter, hexToColor, TRANSPARENT, type Tool } from './model/document';
+import { colorToPaintHex, createCharacter, hexToColor, TRANSPARENT, type Tool } from './model/document';
 import { MIN_ZOOM, MAX_ZOOM } from './model/view';
 import { createEditor, editorReducer } from './model/editor';
 import { useAutosave } from './io/useAutosave';
@@ -72,6 +72,7 @@ export default function App() {
   const { width, height } = state.document;
   const gridMode = grid ? gridDirection : 'off';
   const brushSize = tool === 'eraser' ? eraserSize : penSize;
+  const paintColor = hexToColor(color);
   const selectColor = (value: string) => { setColor(value); setTool((current) => current === 'fill' ? 'fill' : 'pen'); };
   const projectName = state.document.name || '保存した作品';
   const openEditor = (id: string) => { void autosave.open(id).then((opened) => { if (opened) { setScreen('editor'); setZoom(1); setError(''); } }); };
@@ -134,8 +135,8 @@ export default function App() {
             <FrameControls state={state} disabled={locked} dispatch={dispatch} onPlay={() => setWalkPreview(true)} metadata={<> <strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド設定" aria-haspopup="dialog" aria-expanded={guidesOpen} disabled={locked} onClick={() => setGuidesOpen(true)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button> </>} />
             <div className={`canvas-drawing-row ${mobileTools ? 'mobile-drawing-row' : ''}`}>
               {!mobileTools && <BrushControls tool={tool} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />}
-            <PixelCanvas state={state} document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
-              onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
+            <PixelCanvas state={state} document={state.document} color={tool === 'eraser' || paintColor[3] === 0 ? TRANSPARENT : paintColor} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
+              onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToPaintHex(sampled)); setTool('pen'); } }} />
               {!mobileTools && quickTools}
             </div>
             <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><RecentColors colors={state.recentColors} color={color} disabled={locked} onSelect={selectColor} /><div><button aria-label="縮小" disabled={zoom <= MIN_ZOOM || locked} onClick={() => setZoom(Math.max(MIN_ZOOM, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(3))}倍</output><button aria-label="拡大" disabled={zoom >= MAX_ZOOM || locked} onClick={() => setZoom(Math.min(MAX_ZOOM, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>

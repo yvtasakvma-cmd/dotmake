@@ -828,3 +828,10 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
   .frame-utility-row .grid-button .grid-state { display: none; }
   .frame-utility-row .canvas-meta strong { font-size: 9px; }
 }
+
+.opacity-control { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.opacity-control output { margin-left: auto; font-variant-numeric: tabular-nums; }
+.opacity-control input { flex: 0 0 100%; width: 100%; min-width: 0; min-height: 44px; margin: 0; accent-color: #b97c28; touch-action: none; }
+.opacity-hint { margin-top: 0; }
+.alpha-checker { position: relative; background-color: #fff; background-image: conic-gradient(#ccc 25%, transparent 0 50%, #ccc 0 75%, transparent 0); background-size: 8px 8px; overflow: hidden; }
+.swatch-alpha, .current-color-chip > span { position: absolute; inset: 0; display: block; border-radius: inherit; }

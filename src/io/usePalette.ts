@@ -40,7 +40,7 @@ export function usePalette() {
     colors, ready, busy, message, failed,
     add: (color: string) => {
       const hex = color.toLowerCase();
-      if (/^#[0-9a-f]{6}$/.test(hex) && !colors.includes(hex)) void update([...colors, hex]);
+      if (/^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(hex) && !colors.includes(hex)) void update([...colors, hex]);
     },
     remove: (color: string) => { void update(colors.filter((item) => item !== color.toLowerCase())); },
   };
