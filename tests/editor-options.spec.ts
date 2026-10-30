@@ -93,20 +93,31 @@ test('keeps independent pen/eraser sizes and one undo step for a wide stroke', a
   await expect(page.getByLabel('消しゴムの太さ', { exact: true })).toHaveValue('2');
 });
 
-test('switches directional grids and centre lines without changing pixels or the PNG', async ({ page }) => {
+test('switches directional grids and centre lines without changing pixels or the PNG', async ({ page, isMobile }) => {
   await tap(page, 8, 8);
   const before = await page.locator('canvas').evaluate((c: HTMLCanvasElement) => c.toDataURL());
-  await page.getByText('補助線の設定', { exact: true }).click();
+  await expect(page.locator('.tool-panel .guide-controls')).toHaveCount(0);
+  await expect(page.getByLabel('グリッドの向き', { exact: true })).toHaveCount(0);
+  const gridButton = page.getByRole('button', { name: 'グリッド設定', exact: true });
+  await gridButton.scrollIntoViewIfNeeded();
+  if (isMobile) await gridButton.tap(); else await gridButton.click();
+  const dialog = page.getByRole('dialog', { name: '補助線の設定', exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(gridButton).toHaveAttribute('aria-expanded', 'true');
   await page.getByLabel('グリッドの向き', { exact: true }).selectOption('vertical');
   await page.getByLabel('中心線', { exact: true }).selectOption('horizontal');
   await expect(page.locator('[data-guide="grid-vertical"]')).toHaveCount(1);
   await expect(page.locator('[data-guide="grid-horizontal"]')).toHaveCount(0);
   await expect(page.locator('[data-guide="center-horizontal"]')).toHaveAttribute('d', 'M0 16H32');
   await expect(page.locator('[data-guide="center-vertical"]')).toHaveCount(0);
-  await page.getByRole('button', { name: 'グリッド表示', exact: true }).click();
+  await page.getByLabel('グリッドの向き', { exact: true }).selectOption('off');
   await expect(page.locator('[data-guide^="grid-"]')).toHaveCount(0);
   await expect(page.locator('[data-guide="center-horizontal"]')).toHaveCount(1);
-  await page.getByRole('button', { name: 'グリッド表示', exact: true }).click();
+  await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(gridButton).toHaveAttribute('aria-expanded', 'false');
+  await page.keyboard.press('g');
+  await gridButton.click();
   await expect(page.getByLabel('グリッドの向き', { exact: true })).toHaveValue('vertical');
   await page.getByLabel('グリッドの向き', { exact: true }).selectOption('horizontal');
   await page.getByLabel('中心線', { exact: true }).selectOption('vertical');
@@ -114,6 +125,12 @@ test('switches directional grids and centre lines without changing pixels or the
   await expect(page.locator('[data-guide="grid-horizontal"]')).toHaveCount(1);
   await expect(page.locator('[data-guide="center-vertical"]')).toHaveAttribute('d', 'M16 0V32');
   await page.getByLabel('中心線', { exact: true }).selectOption('both');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await gridButton.click();
+  await expect(page.getByLabel('グリッドの向き', { exact: true })).toHaveValue('horizontal');
+  await expect(page.getByLabel('中心線', { exact: true })).toHaveValue('both');
+  await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
   expect(await page.locator('canvas').evaluate((c: HTMLCanvasElement) => c.toDataURL())).toBe(before);
   await page.getByRole('button', { name: 'PNG出力', exact: true }).click();
   const image = page.getByRole('img', { name: '書き出すPNG' });

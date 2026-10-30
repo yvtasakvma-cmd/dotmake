@@ -660,15 +660,6 @@ select:focus-visible {
   outline: 3px solid #b86835;
   outline-offset: 3px;
 }
-.guide-controls {
-  margin-top: 12px;
-}
-.guide-controls summary {
-  min-height: 44px;
-  padding: 12px 0;
-  cursor: pointer;
-  font-size: 12px;
-}
 .palette-actions {
   display: flex;
   flex-wrap: wrap;
@@ -793,3 +784,5 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
 .recent-color > span, .recent-color-empty::after { width: 32px; height: 32px; border: 1px solid #bfc5b3; border-radius: 5px; }
 .recent-color-empty::after { content: ''; border-style: dashed; opacity: .45; }
 .view-controls .recent-color[aria-pressed="true"] > span { outline: 2px solid #30362f; outline-offset: 2px; }
+
+.guide-dialog { width: min(400px, calc(100% - 32px)); }
