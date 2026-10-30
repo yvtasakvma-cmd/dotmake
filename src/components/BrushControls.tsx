@@ -1,4 +1,7 @@
+import type { Tool } from '../model/document';
+
 interface Props {
+  tool: Tool;
   penSize: number;
   eraserSize: number;
   onPenSize: (size: number) => void;
@@ -6,11 +9,17 @@ interface Props {
   disabled: boolean;
 }
 
-export function BrushControls({ penSize, eraserSize, onPenSize, onEraserSize, disabled }: Props) {
-  const sizes = Array.from({ length: 32 }, (_, i) => i + 1);
-  return <fieldset className="brush-controls" disabled={disabled}>
-    <legend>太さ</legend>
-    <div className="setting-fields"><label>ペン<select aria-label="ペンの太さ" value={penSize} onChange={(event) => onPenSize(Number(event.target.value))}>{sizes.map((size) => <option key={size} value={size}>{size} px</option>)}</select></label>
-      <label>消しゴム<select aria-label="消しゴムの太さ" value={eraserSize} onChange={(event) => onEraserSize(Number(event.target.value))}>{sizes.map((size) => <option key={size} value={size}>{size} px</option>)}</select></label></div>
-  </fieldset>;
+export function BrushControls({ tool, penSize, eraserSize, onPenSize, onEraserSize, disabled }: Props) {
+  const erasing = tool === 'eraser';
+  const size = erasing ? eraserSize : penSize;
+  const label = erasing ? '消しゴムの太さ' : 'ペンの太さ';
+  const available = tool === 'pen' || erasing;
+  return <div className="brush-slider" aria-label="ブラシの太さ">
+    <span aria-hidden="true">{erasing ? '消' : 'ペン'}</span>
+    <span className="brush-slider-limit" aria-hidden="true">32</span>
+    <input type="range" min="1" max="32" step="1" value={size} aria-label={label} aria-valuetext={`${size} px`} disabled={disabled || !available}
+      onChange={(event) => (erasing ? onEraserSize : onPenSize)(Number(event.target.value))} />
+    <span className="brush-slider-limit" aria-hidden="true">1</span>
+    <output aria-label="現在の太さ">{size} px</output>
+  </div>;
 }

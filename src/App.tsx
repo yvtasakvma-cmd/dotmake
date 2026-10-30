@@ -121,17 +121,23 @@ export default function App() {
           <div className="canvas-workspace">
             <FrameControls state={state} disabled={locked} dispatch={dispatch} onPlay={() => setWalkPreview(true)} />
             <div className="canvas-meta"><strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド設定" aria-haspopup="dialog" aria-expanded={guidesOpen} disabled={locked} onClick={() => setGuidesOpen(true)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button></div>
+            <div className="canvas-drawing-row">
+              <BrushControls tool={tool} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />
             <PixelCanvas state={state} document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
+              <div className="canvas-quick-tools" role="group" aria-label="キャンバス横のツール">{(['pen', 'picker', 'eraser'] as const).map((value) => {
+                const item = TOOLS.find(item => item.tool === value)!;
+                return <button key={value} className={`tool-button ${tool === value ? 'selected' : ''}`} aria-label={item.label} aria-pressed={tool === value} disabled={locked} title={item.label} onClick={() => setTool(value)}><Icon name={value} size={22} /><span>{item.label}</span></button>;
+              })}</div>
+            </div>
             <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><RecentColors colors={state.recentColors} color={color} disabled={locked} onSelect={selectColor} /><div><button aria-label="縮小" disabled={zoom <= 1 || locked} onClick={() => setZoom(Math.max(1, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(2))}倍</output><button aria-label="拡大" disabled={zoom >= 16 || locked} onClick={() => setZoom(Math.min(16, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
           </div>
           <aside className="tool-panel" aria-label="描画ツール">
             <section className="tools-section" aria-labelledby="tools-heading">
               <div className="section-label"><h2 id="tools-heading">ツール</h2></div>
-              <div className="tool-buttons">{TOOLS.map((item) => <button key={item.tool} className={`tool-button ${tool === item.tool ? 'selected' : ''}`} aria-label={item.label} aria-pressed={tool === item.tool} disabled={locked} onClick={() => setTool(item.tool)}><Icon name={item.tool} size={22} /><span>{item.tool === 'pan' ? '移動' : item.label}</span><kbd>{item.key}</kbd></button>)}</div>
+              <div className="tool-buttons">{TOOLS.filter(item => !['pen', 'picker', 'eraser'].includes(item.tool)).map((item) => <button key={item.tool} className={`tool-button ${tool === item.tool ? 'selected' : ''}`} aria-label={item.label} aria-pressed={tool === item.tool} disabled={locked} onClick={() => setTool(item.tool)}><Icon name={item.tool} size={22} /><span>{item.tool === 'pan' ? '移動' : item.label}</span><kbd>{item.key}</kbd></button>)}</div>
             </section>
             {tool === 'select' && <SelectionControls state={state} disabled={!!state.stroke || canvasInteraction || autosave.busy || !autosave.ready} dispatch={dispatch} />}
-            <BrushControls penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />
             <PalettePanel presets={PALETTE} palette={palette} color={color} disabled={locked} onSelect={selectColor} />
           </aside>
         </div>

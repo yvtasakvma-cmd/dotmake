@@ -621,18 +621,6 @@ dialog .hint {
   stroke-dasharray: 6 4;
   opacity: .95;
 }
-.brush-controls {
-  min-width: 0;
-  margin: 20px 0 0;
-  padding: 0;
-  border: 0;
-}
-.brush-controls legend {
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 10px;
-  padding: 0;
-}
 .setting-fields {
   display: flex;
   gap: 8px;
@@ -786,3 +774,12 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
 .view-controls .recent-color[aria-pressed="true"] > span { outline: 2px solid #30362f; outline-offset: 2px; }
 
 .guide-dialog { width: min(400px, calc(100% - 32px)); }
+
+.canvas-drawing-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 48px; gap: 4px; align-items: stretch; }
+.canvas-quick-tools { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+.canvas-quick-tools .tool-button { width: 48px; min-height: 56px; padding: 6px 1px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.canvas-quick-tools .tool-button > span { font-size: 9px; white-space: nowrap; }
+.brush-slider { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; min-height: 0; font-size: 10px; }
+.brush-slider input { writing-mode: vertical-lr; direction: rtl; width: 44px; min-height: 80px; height: 0; flex: 1; margin: 0; touch-action: none; accent-color: #b97c28; cursor: ns-resize; }
+.brush-slider output { white-space: nowrap; font-size: 10px; }
+.brush-slider-limit { color: #68725c; font-size: 9px; }
