@@ -1,3 +1,4 @@
+import { enterEditor } from './navigation';
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
@@ -27,6 +28,7 @@ async function create(page: Page, width: number, height: number) {
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('.');
+  await enterEditor(page);
   await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
 });
 
@@ -78,6 +80,7 @@ test('restores completed strokes and rectangular dimensions from IndexedDB', asy
   await tap(page, 23, 15);
   await expect(page.getByText('この端末に保存済み', { exact: true })).toBeVisible();
   await page.reload();
+  await enterEditor(page);
   await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
   await expect(page.locator('canvas')).toHaveAttribute('width', '24');
   await expect(page.locator('canvas')).toHaveAttribute('height', '16');
@@ -163,10 +166,12 @@ test('PWA manifest is scoped correctly and a cached app restores and draws offli
   }
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
+  await enterEditor(page);
   await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await context.setOffline(true);
   await page.reload();
+  await enterEditor(page);
   await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
   expect(await rgba(page, 7, 7)).toEqual([48, 59, 50, 255]);
   await tap(page, 8, 8);
@@ -189,8 +194,7 @@ test('a corrupt saved project is not silently replaced by a blank document', asy
   });
   await page.reload();
   await expect(page.getByText('保存データを読めません。', { exact: false })).toBeVisible();
-  await tap(page, 4, 4);
-  expect(await rgba(page, 4, 4)).toEqual([48, 59, 50, 255]);
+  await expect(page.locator('canvas')).toHaveCount(0);
   const savedVersion = await page.evaluate(async () => new Promise<number>((resolve) => {
     const r = indexedDB.open('pixel-studio', 1);
     r.onsuccess = () => {

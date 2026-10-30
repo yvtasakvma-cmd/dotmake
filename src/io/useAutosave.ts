@@ -4,6 +4,7 @@ import { loadDocument, saveDocument } from './storage';
 
 export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>) {
   const [ready, setReady] = useState(false);
+  const [hasProject, setHasProject] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [status, setStatus] = useState('読み込み中…');
   const [failed, setFailed] = useState(false);
@@ -14,8 +15,8 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
     let active = true;
     void loadDocument().then((document) => {
       if (!active) return;
-      if (document) dispatch({ type: 'replace', document });
-      setEnabled(true);
+      if (document) { dispatch({ type: 'replace', document }); setHasProject(true); setEnabled(true); }
+      else setStatus('作るものを選んでください');
       setReady(true);
     }).catch(() => {
       if (!active) return;
@@ -41,11 +42,11 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
   }, [ready, enabled, state.document, state.stroke]);
 
   useEffect(() => {
-    if (!ready || status === 'この端末に保存済み') return;
+    if (!ready || !hasProject || status === 'この端末に保存済み') return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [ready, status]);
+  }, [ready, hasProject, status]);
 
-  return { ready, status, failed, restart: () => setEnabled(true) };
+  return { ready, status, failed, hasProject, restart: () => { setHasProject(true); setEnabled(true); } };
 }

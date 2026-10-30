@@ -7,6 +7,8 @@ export function colorToHex(color: Color): string {
 }
 
 export interface PixelDocument {
+  readonly name?: string;
+  readonly kind?: 'character';
   readonly width: number;
   readonly height: number;
   readonly pixels: Uint8ClampedArray;

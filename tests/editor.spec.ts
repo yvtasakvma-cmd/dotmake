@@ -1,3 +1,4 @@
+import { enterEditor } from './navigation';
 import { expect, test, type Page } from '@playwright/test';
 
 const canvas = (page: Page) => page.getByLabel('32×32の描画キャンバス', { exact: false });
@@ -20,6 +21,7 @@ async function line(page: Page, from: [number, number], to: [number, number]) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('.');
+  await enterEditor(page);
   await expect(canvas(page)).toBeVisible();
   await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
 });

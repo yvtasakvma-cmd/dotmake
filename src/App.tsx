@@ -7,6 +7,8 @@ import { PwaStatus } from './components/PwaStatus';
 import { PalettePanel } from './components/PalettePanel';
 import { BrushControls } from './components/BrushControls';
 import { GuideControls } from './components/GuideControls';
+import { StartMenu } from './components/StartMenu';
+import { CharacterSetup } from './components/CharacterSetup';
 import type { GuideMode } from './drawing/guides';
 import { colorToHex, createDocument, hexToColor, TRANSPARENT, type Tool } from './model/document';
 import { createEditor, editorReducer } from './model/editor';
@@ -27,6 +29,7 @@ const TOOLS: { tool: Tool; label: string; key: string }[] = [
 
 export default function App() {
   const [state, dispatch] = useReducer(editorReducer, undefined, createEditor);
+  const [screen, setScreen] = useState<'menu' | 'character' | 'editor'>('menu');
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState(PALETTE[0].hex);
   const [grid, setGrid] = useState(true);
@@ -47,9 +50,13 @@ export default function App() {
   const gridMode = grid ? gridDirection : 'off';
   const brushSize = tool === 'eraser' ? eraserSize : penSize;
   const selectColor = (value: string) => { setColor(value); setTool((current) => current === 'fill' ? 'fill' : 'pen'); };
+  const projectName = state.document.name || '保存した作品';
+  const openEditor = () => setScreen('editor');
+  useEffect(() => { setCenterMode(state.document.kind === 'character' ? 'vertical' : 'off'); }, [state.document.kind]);
 
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
+      if (screen !== 'editor') return;
       const target = event.target;
       if (document.querySelector('dialog[open]') || (target instanceof HTMLElement && (target.matches('input, textarea, select') || target.isContentEditable))) return;
       if (event.metaKey || event.ctrlKey) {
@@ -63,10 +70,19 @@ export default function App() {
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, []);
+  }, [screen]);
 
   return <div className="app-shell">
     <main aria-label="Pixel Studio">
+      {screen === 'menu' && <StartMenu ready={autosave.ready} hasProject={autosave.hasProject} name={projectName} onCharacter={() => setScreen('character')} onResume={openEditor} />}
+      {screen === 'character' && <CharacterSetup replacing={autosave.hasProject || autosave.failed} onBack={() => setScreen('menu')} onCreate={(name, w, h) => {
+        try {
+          dispatch({ type: 'replace', document: { ...createDocument(w, h), name, kind: 'character' } });
+          autosave.restart(); setCenterMode('vertical'); setZoom(1); setTool('pen'); setScreen('editor'); setError('');
+        } catch { setError('幅・高さは1〜256の整数で指定してください。'); }
+      }} />}
+      {screen === 'editor' && <>
+      <div className="project-bar"><button disabled={locked} onClick={() => setScreen('menu')}>メニューへ戻る</button><h1>{projectName}</h1><span>{state.document.kind === 'character' ? 'キャラクター' : '保存した作品'}</span></div>
       <section className="editor" aria-label="ドット絵エディタ">
         <div className="workspace-toolbar">
           <div className="file-actions"><button disabled={locked} onClick={() => setNewCanvas(true)}>新規作成</button><button className="primary" disabled={locked || exporting} onClick={() => {
@@ -96,12 +112,13 @@ export default function App() {
           </aside>
         </div>
       </section>
+      </>}
       <p className={`save-status ${autosave.failed ? 'error' : ''}`} role="status">{autosave.status}</p>
       {error && <p role="alert">{error}</p>}
-      <PwaStatus canUpdate={autosave.status === 'この端末に保存済み' && !drawing && !palette.busy} />
+      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy} />
     </main>
     {newCanvas && <NewCanvasDialog onClose={() => setNewCanvas(false)} onCreate={(w, h) => {
-      try { dispatch({ type: 'replace', document: createDocument(w, h) }); autosave.restart(); setZoom(1); setNewCanvas(false); setError(''); }
+      try { dispatch({ type: 'replace', document: { ...createDocument(w, h), name: state.document.name, kind: state.document.kind } }); autosave.restart(); setZoom(1); setNewCanvas(false); setError(''); }
       catch { setError('幅・高さは1〜256の整数で指定してください。'); }
     }} />}
     {png && <ExportDialog blob={png} filename={`pixel-studio-${width}x${height}.png`} onClose={() => setPng(null)} />}

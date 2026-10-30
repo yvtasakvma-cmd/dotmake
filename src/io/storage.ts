@@ -1,6 +1,6 @@
 import { createDocument, type PixelDocument } from '../model/document';
 
-interface StoredDocument { version: 1; width: number; height: number; pixels: Uint8ClampedArray }
+interface StoredDocument { version: 1; width: number; height: number; pixels: Uint8ClampedArray; name?: string; kind?: 'character' }
 let database: Promise<IDBDatabase> | undefined;
 function open(): Promise<IDBDatabase> {
   database ??= new Promise<IDBDatabase>((resolve, reject) => {
@@ -31,7 +31,7 @@ export async function loadDocument(): Promise<PixelDocument | null> {
   const document = createDocument(value.width, value.height);
   if (document.pixels.length !== value.pixels.length) throw new Error('保存データの画素数が正しくありません。');
   document.pixels.set(value.pixels);
-  return document;
+  return { ...document, name: typeof value.name === 'string' && value.name.trim() ? value.name.slice(0, 40) : '保存した作品', ...(value.kind === 'character' ? { kind: 'character' as const } : {}) };
 }
 
 export async function saveDocument(document: PixelDocument): Promise<void> {

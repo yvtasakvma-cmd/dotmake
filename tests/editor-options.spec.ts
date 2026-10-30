@@ -1,3 +1,4 @@
+import { enterEditor } from './navigation';
 import { expect, test, type Page } from '@playwright/test';
 
 async function point(page: Page, x: number, y: number) {
@@ -19,6 +20,7 @@ async function addColor(page: Page, hex: string) {
 }
 test.beforeEach(async ({ page }) => {
   await page.goto('.');
+  await enterEditor(page);
   await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
 });
 
@@ -32,9 +34,11 @@ test('adds and removes saved colours, rejects duplicates, restores offline witho
   expect(await rgba(page, 8, 8)).toEqual([250, 18, 103, 255]);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
+  await enterEditor(page);
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await context.setOffline(true);
   await page.reload();
+  await enterEditor(page);
   await expect(page.getByRole('button', { name: '追加色 #fa1267', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '追加色 #1256fa', exact: true })).toBeVisible();
   expect(await rgba(page, 8, 8)).toEqual([250, 18, 103, 255]);
@@ -50,6 +54,7 @@ test('adds and removes saved colours, rejects duplicates, restores offline witho
   await expect(page.getByRole('button', { name: '追加色 #fa1267', exact: true })).toHaveCount(0);
   await expect(page.getByText('この端末に保存済み', { exact: true })).toBeVisible();
   await page.reload();
+  await enterEditor(page);
   await expect(page.getByRole('button', { name: '追加色 #1256fa', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '追加色 #fa1267', exact: true })).toHaveCount(0);
   await expect(page.locator('canvas')).toHaveAttribute('width', '48');
