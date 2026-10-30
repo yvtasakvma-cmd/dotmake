@@ -1,4 +1,5 @@
-import { useMemo, type Dispatch } from 'react';
+import { useMemo, type Dispatch, type ReactNode } from 'react';
+import { Icon } from './Icon';
 import { DIRECTIONS, POSES } from '../model/document';
 import type { EditorAction, EditorState } from '../model/editor';
 
@@ -14,9 +15,9 @@ function FrameThumbnail({ pixels, width, height }: { pixels: Uint8ClampedArray; 
   return <img className="frame-thumbnail" src={source} alt="" width={width} height={height} />;
 }
 
-export function FrameControls({ state, disabled, dispatch, onPlay }: { state: EditorState; disabled: boolean; dispatch: Dispatch<EditorAction>; onPlay: () => void }) {
+export function FrameControls({ state, disabled, dispatch, onPlay, metadata }: { state: EditorState; disabled: boolean; dispatch: Dispatch<EditorAction>; onPlay: () => void; metadata: ReactNode }) {
   const { document, frameClipboard } = state;
-  if (!document.frames) return null;
+  if (!document.frames) return <div className="canvas-meta">{metadata}</div>;
   const index = document.frameIndex!;
   const row = Math.floor(index / 3), column = index % 3;
   const sameSize = frameClipboard?.width === document.width && frameClipboard.height === document.height;
@@ -24,12 +25,15 @@ export function FrameControls({ state, disabled, dispatch, onPlay }: { state: Ed
     <div className="frame-nav-row">
       <div className="direction-buttons"><button aria-label="前の向き" disabled={disabled || row === 0} onClick={() => dispatch({ type: 'frame', index: index - 3 })}>↑</button><button aria-label="次の向き" disabled={disabled || row === 3} onClick={() => dispatch({ type: 'frame', index: index + 3 })}>↓</button></div>
       <button aria-label="前のポーズ" disabled={disabled || column === 0} onClick={() => dispatch({ type: 'frame', index: index - 1 })}>←</button>
+      <button className="walk-preview-button" aria-label="歩行を再生" title="歩行を再生" disabled={disabled} onClick={onPlay}>▶</button>
       <output aria-label="編集中のコマ">{DIRECTIONS[row]}・{POSES[column]}</output>
       <button aria-label="次のポーズ" disabled={disabled || column === 2} onClick={() => dispatch({ type: 'frame', index: index + 1 })}>→</button>
     </div>
-    <button className="walk-preview-button" disabled={disabled} onClick={onPlay}>▶ 歩行を再生</button>
-    <div className="frame-copy-actions"><button disabled={disabled} onClick={() => dispatch({ type: 'copy-frame' })}>1コマ全体コピー</button><button disabled={disabled || !sameSize} onClick={() => dispatch({ type: 'paste-frame' })}>1コマ全体貼り付け</button></div>
-    {frameClipboard && <p className="palette-hint">コピー中：{frameClipboard.width} × {frameClipboard.height} px。貼り付けは今のコマを置き換えます。Undoできます。{!sameSize && '同じサイズのコマで貼り付けできます。'}</p>}
-    <details><summary>12コマ一覧・出力の並び</summary><div className="frame-table-wrap"><table className="frame-table"><thead><tr><th scope="col">向き</th>{POSES.map((pose) => <th key={pose} scope="col">{pose}</th>)}</tr></thead><tbody>{DIRECTIONS.map((direction, y) => <tr key={direction}><th scope="row">{direction}</th>{POSES.map((pose, x) => <td key={pose}><button aria-label={`${direction}・${pose}を編集`} aria-pressed={index === y * 3 + x} className={index === y * 3 + x ? 'selected' : ''} disabled={disabled} onClick={() => dispatch({ type: 'frame', index: y * 3 + x })}><FrameThumbnail pixels={document.frames![y * 3 + x]} width={document.width} height={document.height} /><span>{pose}</span></button></td>)}</tr>)}</tbody></table></div><p className="palette-hint">PNG：{document.width * 3} × {document.height * 4} px（透明背景・余白なし）</p></details>
+    <div className="frame-utility-row">
+      <div className="frame-copy-actions"><button aria-label="1コマ全体コピー" title="1コマ全体コピー" disabled={disabled} onClick={() => dispatch({ type: 'copy-frame' })}><Icon name="copy" size={18} /><span>全体コピー</span></button><button aria-label="1コマ全体貼り付け" title="1コマ全体貼り付け" disabled={disabled || !sameSize} onClick={() => dispatch({ type: 'paste-frame' })}><Icon name="paste" size={18} /><span>全体貼り付け</span></button></div>
+    <details><summary aria-label="12コマ一覧・出力の並び" title="12コマ一覧・出力の並び">12コマ一覧</summary><div className="frame-table-panel"><div className="frame-table-wrap"><table className="frame-table"><thead><tr><th scope="col">向き</th>{POSES.map((pose) => <th key={pose} scope="col">{pose}</th>)}</tr></thead><tbody>{DIRECTIONS.map((direction, y) => <tr key={direction}><th scope="row">{direction}</th>{POSES.map((pose, x) => <td key={pose}><button aria-label={`${direction}・${pose}を編集`} aria-pressed={index === y * 3 + x} className={index === y * 3 + x ? 'selected' : ''} disabled={disabled} onClick={() => dispatch({ type: 'frame', index: y * 3 + x })}><FrameThumbnail pixels={document.frames![y * 3 + x]} width={document.width} height={document.height} /><span>{pose}</span></button></td>)}</tr>)}</tbody></table></div><p className="palette-hint">PNG：{document.width * 3} × {document.height * 4} px（透明背景・余白なし）</p></div></details>
+      <div className="canvas-meta">{metadata}</div>
+    </div>
+    {frameClipboard && <p className="frame-copy-hint">コピー中：{frameClipboard.width} × {frameClipboard.height} px。貼り付けは今のコマを置き換えます。Undoできます。{!sameSize && '同じサイズのコマで貼り付けできます。'}</p>}
   </section>;
 }

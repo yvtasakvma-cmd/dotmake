@@ -797,3 +797,24 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
   .toolbar-project-name { font-size: 11px; }
   .workspace-toolbar .history-buttons { gap: 0; }
 }
+
+/* Keep frame navigation and frame actions to two compact rows. */
+.frame-navigation { padding: 8px 0 0; border-bottom: 0; }
+.frame-nav-row .walk-preview-button { width: 44px; min-width: 44px; margin: 0; }
+.frame-utility-row { position: relative; display: flex; align-items: center; gap: 8px; min-height: 52px; }
+.frame-utility-row .frame-copy-actions { margin: 0; flex-shrink: 0; gap: 4px; }
+.frame-utility-row .frame-copy-actions button { flex: none; min-width: 44px; padding: 6px; gap: 4px; white-space: nowrap; }
+.frame-utility-row details { flex-shrink: 0; }
+.frame-utility-row summary { display: list-item; padding: 12px 4px; min-height: 44px; white-space: nowrap; font-size: 11px; }
+.frame-utility-row .canvas-meta { flex: 1; min-width: 0; min-height: 44px; gap: 4px; }
+.frame-utility-row .canvas-meta strong { font-size: 10px; white-space: nowrap; }
+.frame-utility-row .grid-button { margin-left: auto; flex-shrink: 0; padding: 4px; }
+.frame-table-panel { position: absolute; top: 100%; left: 0; right: 0; z-index: 5; max-height: 65svh; overflow: auto; padding: 12px; border: 1px solid #bfc5b3; border-radius: 8px; background: #fbfaf6; box-shadow: 0 6px 16px #30362f30; }
+.frame-copy-hint { margin: 0 0 6px; font-size: 10px; }
+@media (max-width: 760px) {
+  .frame-utility-row { gap: 4px; }
+  .frame-utility-row .frame-copy-actions button span { display: none; }
+  .frame-utility-row .grid-button { font-size: 0; gap: 0; min-width: 44px; }
+  .frame-utility-row .grid-button .grid-state { display: none; }
+  .frame-utility-row .canvas-meta strong { font-size: 9px; }
+}
