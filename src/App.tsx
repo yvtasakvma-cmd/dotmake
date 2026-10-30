@@ -105,13 +105,13 @@ export default function App() {
         } catch { setError('幅・高さは1〜256の整数で指定してください。'); }
       }} />}
       {screen === 'editor' && <>
-      <div className="project-bar"><button disabled={locked} onClick={() => setScreen('library')}>キャラクター一覧へ戻る</button><h1>{projectName}</h1><span>{state.document.kind === 'character' ? 'キャラクター' : '保存した作品'}</span></div>
       <section className="editor" aria-label="ドット絵エディタ">
         <div className="workspace-toolbar">
-          <div className="file-actions"><button disabled={locked} onClick={() => setNewCanvas(true)}>新規作成</button><button className="primary" disabled={locked || exporting} onClick={() => {
+          <div className="file-actions"><button aria-label="キャラクター一覧へ戻る" disabled={locked} onClick={() => setScreen('library')}><span className="library-label-full">キャラクター一覧へ戻る</span><span className="library-label-short">一覧へ</span></button><button disabled={locked} onClick={() => setNewCanvas(true)}>新規作成</button><button className="primary" disabled={locked || exporting} onClick={() => {
             setExporting(true); setError('');
             void encodePng(state.document).then(setPng).catch(() => setError('PNGを作成できませんでした。もう一度お試しください。')).finally(() => setExporting(false));
           }}>{exporting ? '作成中…' : 'PNG出力'}</button></div>
+          <h1 className="toolbar-project-name" title={projectName}>{projectName}</h1>
           <div className="history-buttons">
             <button className="icon-button" aria-label="元に戻す" title="元に戻す (Ctrl / ⌘ Z)" disabled={!state.past.length || locked} onClick={() => dispatch({ type: 'undo' })}><Icon name="undo" /></button>
             <button className="icon-button" aria-label="やり直す" title="やり直す (Ctrl / ⌘ Shift Z)" disabled={!state.future.length || locked} onClick={() => dispatch({ type: 'redo' })}><Icon name="redo" /></button>
