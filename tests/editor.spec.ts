@@ -181,3 +181,32 @@ test('right click samples the visible pixel correctly after zoom and pan and ign
   await expect(page.getByRole('button', { name: 'ペン', exact: true })).toHaveAttribute('aria-pressed', 'true');
   expect(await rgba(page, 16, 16)).toEqual([18, 58, 188, 255]);
 });
+
+test('zooms below 1x to one eighth without changing pixels or export size, then resets', async ({ page }) => {
+  await line(page, [8, 8], [9, 8]);
+  const before = await canvas(page).evaluate((c: HTMLCanvasElement) => c.toDataURL());
+  const originalWidth = (await canvas(page).boundingBox())!.width;
+  const smaller = page.getByRole('button', { name: '縮小', exact: true });
+  for (const scale of [.5, .25, .125]) {
+    await smaller.click();
+    await expect(page.getByLabel('拡大率')).toHaveText(`${scale}倍`);
+    expect((await canvas(page).boundingBox())!.width).toBeCloseTo(originalWidth * scale, 1);
+    expect(await canvas(page).evaluate((c: HTMLCanvasElement) => c.toDataURL())).toBe(before);
+  }
+  await expect(smaller).toBeDisabled();
+  await expect(page.locator('[data-guide^="grid-"]')).toHaveCount(0);
+  await page.getByRole('button', { name: '拡大', exact: true }).click();
+  await page.getByRole('button', { name: '拡大', exact: true }).click();
+  await expect(page.getByLabel('拡大率')).toHaveText('0.5倍');
+  await line(page, [16, 16], [16, 16]);
+  expect(await rgba(page, 16, 16)).toEqual([0, 0, 0, 255]);
+  await page.getByRole('button', { name: '元に戻す', exact: true }).click();
+  expect(await canvas(page).evaluate((c: HTMLCanvasElement) => c.toDataURL())).toBe(before);
+  await page.getByRole('button', { name: 'PNG出力', exact: true }).click();
+  const image = page.getByRole('img', { name: '書き出すPNG', exact: true });
+  await expect.poll(() => image.evaluate((img: HTMLImageElement) => [img.naturalWidth, img.naturalHeight])).toEqual([96, 128]);
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await page.getByRole('button', { name: '全体表示', exact: true }).click();
+  await expect(page.getByLabel('拡大率')).toHaveText('1倍');
+  expect((await canvas(page).boundingBox())!.width).toBeCloseTo(originalWidth, 1);
+});

@@ -20,6 +20,7 @@ import type { ProjectSummary } from './io/storage';
 import { CharacterSetup } from './components/CharacterSetup';
 import type { GuideMode } from './drawing/guides';
 import { colorToHex, createCharacter, hexToColor, TRANSPARENT, type Tool } from './model/document';
+import { MIN_ZOOM, MAX_ZOOM } from './model/view';
 import { createEditor, editorReducer } from './model/editor';
 import { useAutosave } from './io/useAutosave';
 import { encodePng } from './io/png';
@@ -137,7 +138,7 @@ export default function App() {
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
               {!mobileTools && quickTools}
             </div>
-            <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><RecentColors colors={state.recentColors} color={color} disabled={locked} onSelect={selectColor} /><div><button aria-label="縮小" disabled={zoom <= 1 || locked} onClick={() => setZoom(Math.max(1, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(2))}倍</output><button aria-label="拡大" disabled={zoom >= 16 || locked} onClick={() => setZoom(Math.min(16, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
+            <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><RecentColors colors={state.recentColors} color={color} disabled={locked} onSelect={selectColor} /><div><button aria-label="縮小" disabled={zoom <= MIN_ZOOM || locked} onClick={() => setZoom(Math.max(MIN_ZOOM, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(3))}倍</output><button aria-label="拡大" disabled={zoom >= MAX_ZOOM || locked} onClick={() => setZoom(Math.min(MAX_ZOOM, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
           </div>
           <aside className="tool-panel" aria-label="描画ツール">
             <section className="tools-section" aria-labelledby="tools-heading">

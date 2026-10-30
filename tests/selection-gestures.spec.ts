@@ -112,11 +112,18 @@ test.describe('native touch navigation',()=>{
     const atEnd=await anchor();expect(atEnd[0]).toBeCloseTo(atStart[0],1);expect(atEnd[1]).toBeCloseTo(atStart[1],1);
     await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:mx-50,y:my-20,id:0},{x:mx-10,y:my-20,id:1}]});
     await expect(page.getByLabel('拡大率')).toHaveText('1倍');
+    await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:mx-40,y:my-20,id:0},{x:mx-20,y:my-20,id:1}]});
+    await expect(page.getByLabel('拡大率')).toHaveText('0.5倍');
+    await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:mx-32.5,y:my-20,id:0},{x:mx-27.5,y:my-20,id:1}]});
+    await expect(page.getByLabel('拡大率')).toHaveText('0.125倍');
+    await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:mx-32,y:my-20,id:0},{x:mx-28,y:my-20,id:1}]});
+    await expect(page.getByLabel('拡大率')).toHaveText('0.125倍');
     await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[{x:mx-50,y:my-20,id:0}]});
     await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:mx,y:my,id:0}]});
     await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     expect(await page.locator('canvas').evaluate((c:HTMLCanvasElement)=>c.toDataURL())).toBe(before);
     expect(await page.evaluate(()=>window.scrollY)).toBe(scrollY);expect(await page.evaluate(()=>visualViewport!.scale)).toBe(scale);
+    await page.getByRole('button',{name:'全体表示',exact:true}).click();
     const p=await cell(page,3,3);
     await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...p,id:0}]});
     await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});

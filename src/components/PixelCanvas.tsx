@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type PointerEvent as ReactPointerEvent } from 'react';
+import { MIN_ZOOM, MAX_ZOOM } from '../model/view';
 import type { Color, PixelDocument, Point, Tool } from '../model/document';
 import type { EditorAction, EditorState } from '../model/editor';
 import { clientToPixel } from '../drawing/stroke';
@@ -113,7 +114,7 @@ export function PixelCanvas({ state, document, color, gridMode, centerMode, brus
     const rect = viewport.current!.getBoundingClientRect();
     const mid = midpoint(a, b);
     const localMid = { x: mid.x - rect.left - viewport.current!.clientLeft, y: mid.y - rect.top - viewport.current!.clientTop };
-    const nextZoom = Math.max(1, Math.min(16, start.zoom * distance(a, b) / start.distance));
+    const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, start.zoom * distance(a, b) / start.distance));
     pendingAnchor.current = { anchor: start.anchor, midpoint: localMid };
     if (Math.abs(nextZoom - zoom) < .00001) { applyAnchor(start.anchor, localMid, zoom); pendingAnchor.current = null; }
     // Both fingers can move in the same React batch. Always publish the final
