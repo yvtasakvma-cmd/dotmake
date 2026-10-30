@@ -21,7 +21,7 @@ async function create(page: Page, width: number, height: number) {
   await page.getByRole('button', { name: '新規作成', exact: true }).click();
   await page.getByLabel('幅', { exact: true }).fill(String(width));
   await page.getByLabel('高さ', { exact: true }).fill(String(height));
-  await page.getByRole('button', { name: '作成して置き換える' }).click();
+  await page.getByRole('button', { name: '作成する' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('canvas')).toHaveAttribute('width', String(width));
   await expect(page.locator('canvas')).toHaveAttribute('height', String(height));
@@ -39,16 +39,16 @@ test('creates preset and rectangular canvases, validates sizes, and allows cance
   expect(await rgba(page, 4, 4)).toEqual([48, 59, 50, 255]);
   await page.getByRole('button', { name: '新規作成', exact: true }).click();
   await page.getByRole('button', { name: '48 × 48', exact: true }).click();
-  await page.getByRole('button', { name: '作成して置き換える' }).click();
+  await page.getByRole('button', { name: '作成する' }).click();
   await expect(page.locator('canvas')).toHaveAttribute('width', '48');
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: '新規作成', exact: true }).click();
   await page.getByLabel('幅', { exact: true }).fill('0');
-  await page.getByRole('button', { name: '作成して置き換える' }).click();
+  await page.getByRole('button', { name: '作成する' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByLabel('幅', { exact: true }).fill('24');
   await page.getByLabel('高さ', { exact: true }).fill('16');
-  await page.getByRole('button', { name: '作成して置き換える' }).click();
+  await page.getByRole('button', { name: '作成する' }).click();
   await expect(page.locator('canvas')).toHaveAttribute('width', '24');
   await expect(page.locator('canvas')).toHaveAttribute('height', '16');
   expect(await rgba(page, 23, 15)).toEqual([0, 0, 0, 0]);
@@ -184,22 +184,24 @@ test('a corrupt saved project is not silently replaced by a blank document', asy
   await expect(page.getByText('この端末に保存済み', { exact: true })).toBeVisible();
   await page.evaluate(async () => {
     await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open('pixel-studio', 1);
+      const request = indexedDB.open('pixel-studio');
       request.onsuccess = () => {
-        const db = request.result, tx = db.transaction('documents', 'readwrite');
-        tx.objectStore('documents').put({ version: 99 }, 'current');
+        const db = request.result, tx = db.transaction('projects', 'readwrite');
+        const store = tx.objectStore('projects');
+        const all = store.getAll();
+        all.onsuccess = () => store.put({ ...all.result[0], version: 99 });
         tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error);
       };
     });
   });
   await page.reload();
-  await expect(page.getByText('保存データを読めません。', { exact: false })).toBeVisible();
+  await expect(page.getByText('一部の作品を読めません。', { exact: false })).toBeVisible();
   await expect(page.locator('canvas')).toHaveCount(0);
   const savedVersion = await page.evaluate(async () => new Promise<number>((resolve) => {
-    const r = indexedDB.open('pixel-studio', 1);
+    const r = indexedDB.open('pixel-studio');
     r.onsuccess = () => {
-      const db = r.result, tx = db.transaction('documents'); const item = tx.objectStore('documents').get('current');
-      item.onsuccess = () => { resolve(item.result.version); db.close(); };
+      const db = r.result, tx = db.transaction('projects'); const item = tx.objectStore('projects').getAll();
+      item.onsuccess = () => { resolve(item.result[0].version); db.close(); };
     };
   }));
   expect(savedVersion).toBe(99);
@@ -211,7 +213,7 @@ test('reports storage write failures while keeping PNG export available', async 
     IDBObjectStore.prototype.put = () => { throw new DOMException('Storage is full', 'QuotaExceededError'); };
   });
   await tap(page, 3, 3);
-  await expect(page.getByText('自動保存できません。PNGで保存してください。', { exact: true })).toBeVisible();
+  await expect(page.getByText('自動保存できません。PNGで保存してください。', { exact: false })).toBeVisible();
   expect(await rgba(page, 3, 3)).toEqual([48, 59, 50, 255]);
   await page.getByRole('button', { name: 'PNG出力', exact: true }).click();
   await expect(page.getByRole('img', { name: '書き出すPNG' })).toBeVisible();

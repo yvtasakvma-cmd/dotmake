@@ -47,7 +47,7 @@ test('adds and removes saved colours, rejects duplicates, restores offline witho
   expect(await rgba(page, 9, 9)).toEqual([250, 18, 103, 255]);
   await page.getByRole('button', { name: '新規作成', exact: true }).click();
   await page.getByRole('button', { name: '48 × 48', exact: true }).click();
-  await page.getByRole('button', { name: '作成して置き換える' }).click();
+  await page.getByRole('button', { name: '作成する' }).click();
   await expect(page.locator('canvas')).toHaveAttribute('width', '48');
   await page.getByRole('button', { name: '追加色 #fa1267', exact: true }).click();
   await page.getByRole('button', { name: '選択した追加色を削除', exact: true }).click();

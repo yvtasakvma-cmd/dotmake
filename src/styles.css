@@ -721,11 +721,15 @@ select:focus-visible {
 .resume-project button { width: 100%; }
 .project-name-input { display: grid; gap: 8px; font-size: 13px; }
 .project-name-input input { min-height: 44px; border: 1px solid #aab39f; border-radius: 6px; font-size: 16px; padding: 10px; width: 100%; }
-.setup-hint, .replace-warning { font-size: 12px; line-height: 1.8; }
-.replace-warning { margin: 20px 0; padding: 12px; border: 1px solid #d6bd89; border-radius: 6px; }
-.replace-warning label { display: flex; align-items: center; gap: 10px; min-height: 44px; }
-.replace-warning input { width: 24px; height: 24px; flex-shrink: 0; }
+.setup-hint { font-size: 12px; line-height: 1.8; }
 .create-character { width: 100%; margin-top: 16px; }
 .project-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
 .project-bar h1 { margin: 0; font-size: 15px; overflow-wrap: anywhere; flex: 1; min-width: 100px; }
 .project-bar > span { font-size: 11px; color: #647057; }
+
+.setup-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.project-list { list-style: none; margin: 18px 0; padding: 0; display: grid; gap: 12px; }
+.project-list article { border: 1px solid var(--line); border-radius: 9px; padding: 16px; background: #fbfaf6; }
+.project-list h3 { font-size: 16px; margin: 0 0 8px; overflow-wrap: anywhere; }
+.project-list p { font-size: 12px; margin: 8px 0; }
+.project-list time { display: block; font-size: 11px; color: #647057; margin-bottom: 12px; }

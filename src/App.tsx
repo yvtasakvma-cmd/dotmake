@@ -45,13 +45,13 @@ export default function App() {
   const [error, setError] = useState('');
   const autosave = useAutosave(state, dispatch);
   const drawing = state.stroke !== null;
-  const locked = drawing || !autosave.ready;
+  const locked = drawing || !autosave.ready || autosave.busy;
   const { width, height } = state.document;
   const gridMode = grid ? gridDirection : 'off';
   const brushSize = tool === 'eraser' ? eraserSize : penSize;
   const selectColor = (value: string) => { setColor(value); setTool((current) => current === 'fill' ? 'fill' : 'pen'); };
   const projectName = state.document.name || '保存した作品';
-  const openEditor = () => setScreen('editor');
+  const openEditor = (id: string) => { void autosave.open(id).then((opened) => { if (opened) { setScreen('editor'); setZoom(1); setError(''); } }); };
   useEffect(() => { setCenterMode(state.document.kind === 'character' ? 'vertical' : 'off'); }, [state.document.kind]);
 
   useEffect(() => {
@@ -74,11 +74,12 @@ export default function App() {
 
   return <div className="app-shell">
     <main aria-label="Pixel Studio">
-      {screen === 'menu' && <StartMenu ready={autosave.ready} hasProject={autosave.hasProject} name={projectName} onCharacter={() => setScreen('character')} onResume={openEditor} />}
-      {screen === 'character' && <CharacterSetup replacing={autosave.hasProject || autosave.failed} onBack={() => setScreen('menu')} onCreate={(name, w, h) => {
+      {screen === 'menu' && <StartMenu ready={autosave.ready && !autosave.busy} projects={autosave.projects} activeId={autosave.activeId} onCharacter={() => setScreen('character')} onOpen={openEditor} />}
+      {screen === 'character' && <CharacterSetup disabled={autosave.busy} onBack={() => setScreen('menu')} onCreate={(name, w, h) => {
         try {
-          dispatch({ type: 'replace', document: { ...createDocument(w, h), name, kind: 'character' } });
-          autosave.restart(); setCenterMode('vertical'); setZoom(1); setTool('pen'); setScreen('editor'); setError('');
+          void autosave.create({ ...createDocument(w, h), name, kind: 'character' }).then((created) => {
+            if (created) { setCenterMode('vertical'); setZoom(1); setTool('pen'); setScreen('editor'); setError(''); }
+          });
         } catch { setError('幅・高さは1〜256の整数で指定してください。'); }
       }} />}
       {screen === 'editor' && <>
@@ -97,7 +98,7 @@ export default function App() {
         <div className="editor-body">
           <div className="canvas-workspace">
             <div className="canvas-meta"><strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド表示" aria-pressed={grid} onClick={() => setGrid(!grid)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button></div>
-            <PixelCanvas document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} disabled={!autosave.ready} dispatch={dispatch}
+            <PixelCanvas document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
             <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><div><button aria-label="縮小" disabled={zoom === 1 || locked} onClick={() => setZoom(zoom / 2)}>−</button><output aria-label="拡大率">{zoom}倍</output><button aria-label="拡大" disabled={zoom === 16 || locked} onClick={() => setZoom(zoom * 2)}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
           </div>
@@ -114,11 +115,12 @@ export default function App() {
       </section>
       </>}
       <p className={`save-status ${autosave.failed ? 'error' : ''}`} role="status">{autosave.status}</p>
+      {autosave.warning && <p role="alert">{autosave.warning}</p>}
       {error && <p role="alert">{error}</p>}
-      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy} />
+      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy} />
     </main>
-    {newCanvas && <NewCanvasDialog onClose={() => setNewCanvas(false)} onCreate={(w, h) => {
-      try { dispatch({ type: 'replace', document: { ...createDocument(w, h), name: state.document.name, kind: state.document.kind } }); autosave.restart(); setZoom(1); setNewCanvas(false); setError(''); }
+    {newCanvas && <NewCanvasDialog disabled={autosave.busy} onClose={() => setNewCanvas(false)} onCreate={(w, h, name) => {
+      try { void autosave.create({ ...createDocument(w, h), name, kind: 'character' }).then((created) => { if (created) { setTool('pen'); setCenterMode('vertical'); setZoom(1); setNewCanvas(false); setError(''); } }); }
       catch { setError('幅・高さは1〜256の整数で指定してください。'); }
     }} />}
     {png && <ExportDialog blob={png} filename={`pixel-studio-${width}x${height}.png`} onClose={() => setPng(null)} />}

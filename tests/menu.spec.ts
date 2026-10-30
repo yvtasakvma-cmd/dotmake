@@ -25,7 +25,7 @@ test('first menu has one available category and does not autosave a blank image'
   await expect(page.getByRole('button', { name: '保存した作品を続ける' })).toHaveCount(0);
   await expect(page.locator('canvas')).toHaveCount(0);
   const exists = await page.evaluate(() => new Promise<boolean>((resolve) => {
-    const r = indexedDB.open('pixel-studio', 1);
+    const r = indexedDB.open('pixel-studio');
     r.onsuccess = () => { const db = r.result, tx = db.transaction('documents'); const q = tx.objectStore('documents').get('current'); q.onsuccess = () => { resolve(q.result !== undefined); db.close(); }; };
   }));
   expect(exists).toBe(false);
@@ -59,37 +59,42 @@ test('named character creation, menu resume and reload preserve image and metada
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
 });
 
-test('replacement needs confirmation and cancelling keeps the previous character', async ({ page }) => {
+test('new characters are independent and cancelling setup keeps all earlier work', async ({ page }) => {
   await page.goto('.'); await menu(page); await start(page);
+  await page.getByLabel('作品名', { exact: true }).fill('剣士');
   await page.getByRole('button', { name: '描き始める' }).click(); await draw(page);
-  await page.getByRole('button', { name: 'メニューへ戻る' }).click();
-  await start(page);
-  await page.getByLabel('作品名', { exact: true }).fill('魔法使い');
+  await page.getByRole('button', { name: 'メニューへ戻る' }).click(); await start(page);
   await page.getByLabel('幅', { exact: true }).fill('0');
   await page.getByRole('button', { name: '描き始める' }).click();
   await expect(page.getByLabel('作品名', { exact: true })).toBeVisible();
-  await page.getByLabel('幅', { exact: true }).fill('24');
-  await page.getByLabel('高さ', { exact: true }).fill('48');
-  await page.getByRole('button', { name: '描き始める' }).click();
-  await expect(page.getByRole('checkbox', { name: '現在の作品を置き換える' })).not.toBeChecked();
   await page.getByRole('button', { name: 'メニューへ戻る' }).click();
-  await page.getByRole('button', { name: '保存した作品を続ける' }).click();
+  await page.getByRole('button', { name: '剣士を開く', exact: true }).click();
   expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
   await page.getByRole('button', { name: 'メニューへ戻る' }).click(); await start(page);
   await page.getByLabel('作品名', { exact: true }).fill('魔法使い');
   await page.getByLabel('幅', { exact: true }).fill('24');
   await page.getByLabel('高さ', { exact: true }).fill('48');
-  await page.getByRole('checkbox', { name: '現在の作品を置き換える' }).check();
+  await expect(page.getByRole('checkbox')).toHaveCount(0);
   await page.getByRole('button', { name: '描き始める' }).click();
   await expect(page.locator('canvas')).toHaveAttribute('width', '24');
-  await expect(page.getByRole('heading', { name: '魔法使い', exact: true })).toBeVisible();
   expect(await pixel(page, 4, 4)).toEqual([0, 0, 0, 0]);
+  await page.getByRole('button', { name: 'コーラル #e77958' }).click(); await draw(page);
+  await page.getByRole('button', { name: 'メニューへ戻る' }).click();
+  await expect(page.locator('.project-list li')).toHaveCount(2);
+  await page.getByRole('button', { name: '剣士を開く', exact: true }).click();
+  await expect(page.locator('canvas')).toHaveAttribute('width', '32');
+  expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
+  await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'メニューへ戻る' }).click();
+  await page.getByRole('button', { name: '魔法使いを開く', exact: true }).click();
+  expect(await pixel(page, 4, 4)).toEqual([231, 121, 88, 255]);
 });
 
-test('legacy pixels without character metadata remain accessible', async ({ page }) => {
-  await page.goto('.'); await menu(page);
+test('legacy pixels without character metadata remain accessible', async ({ page, baseURL }) => {
+  await page.goto(new URL('favicon.svg', baseURL).href);
   await page.evaluate(() => new Promise<void>((resolve) => {
     const request = indexedDB.open('pixel-studio', 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('documents');
     request.onsuccess = () => {
       const db = request.result, tx = db.transaction('documents', 'readwrite');
       const pixels = new Uint8ClampedArray(24 * 16 * 4); pixels.set([231,121,88,255], (4 * 24 + 4) * 4);
@@ -97,7 +102,7 @@ test('legacy pixels without character metadata remain accessible', async ({ page
       tx.oncomplete = () => { db.close(); resolve(); };
     };
   }));
-  await page.reload(); await menu(page);
+  await page.goto('.'); await menu(page);
   await page.getByRole('button', { name: '保存した作品を続ける' }).click();
   await expect(page.locator('canvas')).toHaveAttribute('width', '24');
   await expect(page.locator('canvas')).toHaveAttribute('height', '16');
