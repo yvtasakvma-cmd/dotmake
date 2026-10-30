@@ -195,7 +195,12 @@ export function PixelCanvas({ state, document, color, gridMode, centerMode, brus
   const brushOffset = Math.floor((brushSize - 1) / 2);
 
   return <div ref={viewport} className={`canvas-viewport tool-${tool}`} aria-label="キャンバス表示領域"
-    onContextMenu={(event) => event.preventDefault()} onPointerLeave={() => setHover(null)}
+    onContextMenu={(event) => {
+      event.preventDefault();
+      if (disabled || event.button !== 2 || event.target !== canvasRef.current || activePointer.current || touches.current.size || state.stroke || state.floating) return;
+      const sampled = sampleColor(document, point(event));
+      if (sampled) onPick(sampled);
+    }} onPointerLeave={() => setHover(null)}
     onPointerDown={down} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end}>
     <div className="canvas-stage" style={{ width: width + 24, height: height + 24 }}>
       <div className={`canvas-frame ${tool === 'eraser' ? 'is-erasing' : ''}`} style={{ width, height, aspectRatio: 'auto', backgroundSize: `${Math.max(8, cellSize * 4)}px ${Math.max(8, cellSize * 4)}px` }}>

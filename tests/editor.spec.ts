@@ -133,3 +133,51 @@ test('portrait controls fit without horizontal page overflow', async ({ page }, 
   }
   await page.screenshot({ path: testInfo.outputPath('portrait.png'), fullPage: true });
 });
+
+test('right click picks the pixel colour or selects eraser on transparency without drawing', async ({ page }) => {
+  await page.getByLabel('自由な色', { exact: true }).fill('#e77958');
+  await line(page, [8, 8], [9, 8]);
+  const before = await canvas(page).evaluate((c: HTMLCanvasElement) => c.toDataURL());
+  await page.getByLabel('自由な色', { exact: true }).fill('#1256fa');
+  await page.getByRole('button', { name: '塗りつぶし', exact: true }).click();
+  let p = await cell(page, 8, 8);
+  await page.mouse.click(p.x, p.y, { button: 'right' });
+  await expect(page.getByLabel('自由な色', { exact: true })).toHaveValue('#e77958');
+  await expect(page.getByRole('button', { name: 'ペン', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(await canvas(page).evaluate((c: HTMLCanvasElement) => c.toDataURL())).toBe(before);
+  p = await cell(page, 15, 15);
+  await page.mouse.click(p.x, p.y, { button: 'right' });
+  await expect(page.getByRole('button', { name: '消しゴム', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(await canvas(page).evaluate((c: HTMLCanvasElement) => c.toDataURL())).toBe(before);
+  await page.getByRole('button', { name: '元に戻す', exact: true }).click();
+  expect(await rgba(page, 8, 8)).toEqual([0, 0, 0, 0]);
+  await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'やり直す', exact: true }).click();
+  p = await cell(page, 8, 8); await page.mouse.click(p.x, p.y);
+  expect(await rgba(page, 8, 8)).toEqual([0, 0, 0, 0]);
+  expect(await rgba(page, 9, 8)).toEqual([231, 121, 88, 255]);
+});
+
+test('right click samples the visible pixel correctly after zoom and pan and ignores the canvas margin', async ({ page }) => {
+  await page.getByLabel('自由な色', { exact: true }).fill('#123abc');
+  await line(page, [16, 16], [16, 16]);
+  await page.getByRole('button', { name: '拡大', exact: true }).click();
+  const viewport = page.getByLabel('キャンバス表示領域', { exact: true });
+  await viewport.scrollIntoViewIfNeeded();
+  await viewport.evaluate(element => { element.scrollLeft += 12; element.scrollTop += 12; });
+  await page.getByLabel('自由な色', { exact: true }).fill('#ffffff');
+  await page.getByRole('button', { name: '表示を移動', exact: true }).click();
+  await viewport.scrollIntoViewIfNeeded();
+  const p = await canvas(page).evaluate((c: HTMLCanvasElement) => {
+    const box = c.getBoundingClientRect(); return { x: box.x + 16.5 * box.width / 32, y: box.y + 16.5 * box.height / 32 };
+  });
+  await page.mouse.click(p.x, p.y, { button: 'right' });
+  await expect(page.getByLabel('自由な色', { exact: true })).toHaveValue('#123abc');
+  await expect(page.getByRole('button', { name: 'ペン', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: '全体表示', exact: true }).click();
+  await viewport.scrollIntoViewIfNeeded();
+  const box = (await viewport.boundingBox())!;
+  await page.mouse.click(box.x + 2, box.y + 2, { button: 'right' });
+  await expect(page.getByRole('button', { name: 'ペン', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(await rgba(page, 16, 16)).toEqual([18, 58, 188, 255]);
+});
