@@ -1,4 +1,5 @@
 import { drawLine } from '../drawing/stroke';
+import { floodFill } from '../drawing/fill';
 import { createDocument, type Color, type PixelDocument, type Point } from './document';
 
 export const HISTORY_LIMIT = 50;
@@ -10,6 +11,8 @@ export interface EditorState {
 }
 
 export type EditorAction =
+  | { type: 'replace'; document: PixelDocument }
+  | { type: 'fill'; point: Point; color: Color }
   | { type: 'begin'; point: Point; color: Color }
   | { type: 'move'; point: Point }
   | { type: 'end' }
@@ -22,6 +25,15 @@ export function createEditor(): EditorState {
 
 export function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
+    case 'replace':
+      if (state.stroke) return state;
+      return { document: action.document, past: [], future: [], stroke: null };
+    case 'fill': {
+      if (state.stroke) return state;
+      const document = floodFill(state.document, action.point, action.color);
+      if (document === state.document) return state;
+      return { document, past: [...state.past, state.document].slice(-HISTORY_LIMIT), future: [], stroke: null };
+    }
     case 'begin':
       if (state.stroke) return state;
       return {

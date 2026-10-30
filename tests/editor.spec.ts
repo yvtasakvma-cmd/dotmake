@@ -21,6 +21,7 @@ async function line(page: Page, from: [number, number], to: [number, number]) {
 test.beforeEach(async ({ page }) => {
   await page.goto('.');
   await expect(canvas(page)).toBeVisible();
+  await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
 });
 
 test('starts transparent and paints continuous pixels, undoing the whole stroke', async ({ page }) => {
