@@ -25,9 +25,9 @@ export function FrameControls({ state, disabled, dispatch, onPlay, metadata }: {
     <div className="frame-nav-row">
       <div className="direction-buttons"><button aria-label="前の向き" disabled={disabled || row === 0} onClick={() => dispatch({ type: 'frame', index: index - 3 })}>↑</button><button aria-label="次の向き" disabled={disabled || row === 3} onClick={() => dispatch({ type: 'frame', index: index + 3 })}>↓</button></div>
       <button aria-label="前のポーズ" disabled={disabled || column === 0} onClick={() => dispatch({ type: 'frame', index: index - 1 })}>←</button>
-      <button className="walk-preview-button" aria-label="歩行を再生" title="歩行を再生" disabled={disabled} onClick={onPlay}>▶</button>
-      <output aria-label="編集中のコマ">{DIRECTIONS[row]}・{POSES[column]}</output>
       <button aria-label="次のポーズ" disabled={disabled || column === 2} onClick={() => dispatch({ type: 'frame', index: index + 1 })}>→</button>
+      <output aria-label="編集中のコマ">{DIRECTIONS[row]}・{POSES[column]}</output>
+      <button className="walk-preview-button" aria-label="歩行を再生" title="歩行を再生" disabled={disabled} onClick={onPlay}>▶</button>
     </div>
     <div className="frame-utility-row">
       <div className="frame-copy-actions"><button aria-label="1コマ全体コピー" title="1コマ全体コピー" disabled={disabled} onClick={() => dispatch({ type: 'copy-frame' })}><Icon name="copy" size={18} /><span>全体コピー</span></button><button aria-label="1コマ全体貼り付け" title="1コマ全体貼り付け" disabled={disabled || !sameSize} onClick={() => dispatch({ type: 'paste-frame' })}><Icon name="paste" size={18} /><span>全体貼り付け</span></button></div>
