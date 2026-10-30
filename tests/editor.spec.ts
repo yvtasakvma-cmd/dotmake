@@ -30,13 +30,13 @@ test('starts transparent and paints continuous pixels, undoing the whole stroke'
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
   expect(await rgba(page, 0, 0)).toEqual([0, 0, 0, 0]);
   await line(page, [1, 5], [30, 5]);
-  for (let x = 1; x <= 30; x++) expect(await rgba(page, x, 5)).toEqual([48, 59, 50, 255]);
+  for (let x = 1; x <= 30; x++) expect(await rgba(page, x, 5)).toEqual([0, 0, 0, 255]);
   expect(await rgba(page, 15, 6)).toEqual([0, 0, 0, 0]);
   await page.getByRole('button', { name: '元に戻す', exact: true }).click();
   expect(await rgba(page, 15, 5)).toEqual([0, 0, 0, 0]);
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'やり直す', exact: true }).click();
-  expect(await rgba(page, 15, 5)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 15, 5)).toEqual([0, 0, 0, 255]);
 });
 
 test('selects colours, erases true alpha, and restores erased pixels', async ({ page }) => {
@@ -71,12 +71,12 @@ test('captures the pointer outside the canvas and ends its stroke on release', a
   await page.mouse.down();
   await page.mouse.move(box.x + box.width + 8, start.y);
   await page.mouse.up();
-  expect(await rgba(page, 31, 16)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 31, 16)).toEqual([0, 0, 0, 255]);
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeEnabled();
   await line(page, [0, 0], [0, 0]);
   await page.getByRole('button', { name: '元に戻す', exact: true }).click();
   expect(await rgba(page, 0, 0)).toEqual([0, 0, 0, 0]);
-  expect(await rgba(page, 31, 16)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 31, 16)).toEqual([0, 0, 0, 255]);
 });
 
 test('cancellation leaves the editor usable and the partial stroke undoable', async ({ page }) => {
@@ -89,7 +89,7 @@ test('cancellation leaves the editor usable and the partial stroke undoable', as
   await page.getByRole('button', { name: '元に戻す', exact: true }).click();
   expect(await rgba(page, 10, 10)).toEqual([0, 0, 0, 0]);
   await line(page, [4, 4], [4, 4]);
-  expect(await rgba(page, 4, 4)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 4, 4)).toEqual([0, 0, 0, 255]);
 });
 
 test('supports keyboard history and tool shortcuts', async ({ page }) => {
@@ -97,14 +97,14 @@ test('supports keyboard history and tool shortcuts', async ({ page }) => {
   await page.keyboard.press('Control+z');
   expect(await rgba(page, 5, 5)).toEqual([0, 0, 0, 0]);
   await page.keyboard.press('Control+Shift+z');
-  expect(await rgba(page, 5, 5)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 5, 5)).toEqual([0, 0, 0, 255]);
   await page.keyboard.press('e');
   await expect(page.getByRole('button', { name: '消しゴム', exact: false })).toHaveAttribute('aria-pressed', 'true');
   await line(page, [5, 5], [5, 5]);
   expect(await rgba(page, 5, 5)).toEqual([0, 0, 0, 0]);
 });
 
-test('real touch events draw without scrolling and ignore a second finger', async ({ page, isMobile }) => {
+test('two-finger navigation cancels the first drawing touch without scrolling the page', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'Touch behaviour is exercised in the mobile project.');
   const session = await page.context().newCDPSession(page);
   const start = await cell(page, 2, 10);
@@ -115,10 +115,10 @@ test('real touch events draw without scrolling and ignore a second finger', asyn
   await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...start, id: 0 }, { ...second, id: 1 }] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...end, id: 0 }, { ...second, id: 1 }] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  expect(await rgba(page, 15, 10)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 15, 10)).toEqual([0, 0, 0, 0]);
   expect(await rgba(page, 16, 24)).toEqual([0, 0, 0, 0]);
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
-  await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
 });
 
 test('portrait controls fit without horizontal page overflow', async ({ page }, testInfo) => {

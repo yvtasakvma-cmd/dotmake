@@ -72,8 +72,8 @@ test('keeps independent pen/eraser sizes and one undo step for a wide stroke', a
   } else {
     await page.mouse.move(start.x, start.y); await page.mouse.down(); await page.mouse.move(end.x, end.y); await page.mouse.up();
   }
-  expect(await rgba(page, 5, 7)).toEqual([48, 59, 50, 255]);
-  expect(await rgba(page, 16, 10)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 5, 7)).toEqual([0, 0, 0, 255]);
+  expect(await rgba(page, 16, 10)).toEqual([0, 0, 0, 255]);
   expect(await rgba(page, 17, 8)).toEqual([0, 0, 0, 0]);
   await page.getByRole('button', { name: '元に戻す', exact: true }).click();
   expect(await rgba(page, 10, 8)).toEqual([0, 0, 0, 0]);
@@ -84,10 +84,10 @@ test('keeps independent pen/eraser sizes and one undo step for a wide stroke', a
   await tap(page, 8, 8);
   expect(await rgba(page, 8, 8)).toEqual([0, 0, 0, 0]);
   expect(await rgba(page, 9, 9)).toEqual([0, 0, 0, 0]);
-  expect(await rgba(page, 7, 8)).toEqual([48, 59, 50, 255]);
-  expect(await rgba(page, 10, 8)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 7, 8)).toEqual([0, 0, 0, 255]);
+  expect(await rgba(page, 10, 8)).toEqual([0, 0, 0, 255]);
   await page.getByRole('button', { name: '元に戻す', exact: true }).click();
-  expect(await rgba(page, 8, 8)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 8, 8)).toEqual([0, 0, 0, 255]);
   await page.getByRole('button', { name: 'ペン', exact: true }).click();
   await expect(page.getByLabel('ペンの太さ', { exact: true })).toHaveValue('4');
   await expect(page.getByLabel('消しゴムの太さ', { exact: true })).toHaveValue('2');

@@ -1,6 +1,6 @@
 export type Color = readonly [number, number, number, number];
 export type Point = Readonly<{ x: number; y: number }>;
-export type Tool = 'pen' | 'eraser' | 'fill' | 'picker' | 'pan';
+export type Tool = 'pen' | 'eraser' | 'fill' | 'picker' | 'pan' | 'select';
 
 export function colorToHex(color: Color): string {
   return '#' + color.slice(0, 3).map((channel) => channel.toString(16).padStart(2, '0')).join('');

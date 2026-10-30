@@ -6,6 +6,7 @@ import { ExportDialog } from './components/ExportDialog';
 import { PwaStatus } from './components/PwaStatus';
 import { PalettePanel } from './components/PalettePanel';
 import { BrushControls } from './components/BrushControls';
+import { SelectionControls } from './components/SelectionControls';
 import { GuideControls } from './components/GuideControls';
 import { StartMenu } from './components/StartMenu';
 import { CharacterLibrary } from './components/CharacterLibrary';
@@ -20,7 +21,7 @@ import { encodePng } from './io/png';
 import { usePalette } from './io/usePalette';
 
 const PALETTE = [
-  { hex: '#303b32', name: 'フォレスト' }, { hex: '#f6f4ee', name: 'ミルク' },
+  { hex: '#000000', name: '黒' }, { hex: '#f6f4ee', name: 'ミルク' },
   { hex: '#e77958', name: 'コーラル' }, { hex: '#efc66c', name: 'サンシャイン' },
   { hex: '#81a987', name: 'セージ' }, { hex: '#83b5c5', name: 'スカイ' },
   { hex: '#9386b5', name: 'ラベンダー' }, { hex: '#d8a2b5', name: 'ローズ' },
@@ -28,10 +29,12 @@ const PALETTE = [
 const TOOLS: { tool: Tool; label: string; key: string }[] = [
   { tool: 'pen', label: 'ペン', key: 'B' }, { tool: 'eraser', label: '消しゴム', key: 'E' },
   { tool: 'fill', label: '塗りつぶし', key: 'F' }, { tool: 'picker', label: 'スポイト', key: 'I' }, { tool: 'pan', label: '表示を移動', key: 'H' },
+  { tool: 'select', label: '範囲選択', key: 'S' },
 ];
 
 export default function App() {
   const [state, dispatch] = useReducer(editorReducer, undefined, createEditor);
+  const [canvasInteraction, setCanvasInteraction] = useState(false);
   const [screen, setScreen] = useState<'menu' | 'library' | 'character' | 'editor'>('menu');
   const [deleting, setDeleting] = useState<ProjectSummary | null>(null);
   const [tool, setTool] = useState<Tool>('pen');
@@ -48,8 +51,8 @@ export default function App() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
   const autosave = useAutosave(state, dispatch);
-  const drawing = state.stroke !== null;
-  const locked = drawing || !autosave.ready || autosave.busy;
+  const drawing = state.stroke !== null || state.floating !== null;
+  const locked = drawing || canvasInteraction || !autosave.ready || autosave.busy;
   const { width, height } = state.document;
   const gridMode = grid ? gridDirection : 'off';
   const brushSize = tool === 'eraser' ? eraserSize : penSize;
@@ -60,21 +63,28 @@ export default function App() {
 
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (screen !== 'editor') return;
+      if (screen !== 'editor' || canvasInteraction) return;
       const target = event.target;
       if (document.querySelector('dialog[open]') || (target instanceof HTMLElement && (target.matches('input, textarea, select') || target.isContentEditable))) return;
       if (event.metaKey || event.ctrlKey) {
         if (event.key.toLowerCase() === 'z') { event.preventDefault(); dispatch({ type: event.shiftKey ? 'redo' : 'undo' }); }
         if (event.key.toLowerCase() === 'y') { event.preventDefault(); dispatch({ type: 'redo' }); }
+        if (tool === 'select' && event.key.toLowerCase() === 'c') { event.preventDefault(); dispatch({ type: 'copy-region' }); }
+        if (tool === 'select' && event.key.toLowerCase() === 'v') { event.preventDefault(); dispatch({ type: 'paste-region' }); }
       } else if (!event.altKey) {
+        if (event.key === 'Escape') { if (state.floating) dispatch({ type: 'cancel-region' }); else dispatch({ type: 'selection', rect: null }); return; }
+        if (event.key === 'Enter' && state.floating) { event.preventDefault(); dispatch({ type: 'commit-region' }); return; }
+        if (tool === 'select' && state.selection && event.key.startsWith('Arrow')) {
+          event.preventDefault(); dispatch({ type: 'move-region', dx: event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0, dy: event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0 }); return;
+        }
         const selected = TOOLS.find((item) => item.key.toLowerCase() === event.key.toLowerCase());
-        if (selected) setTool(selected.tool);
+        if (selected && !state.floating && !state.stroke) setTool(selected.tool);
         if (event.key.toLowerCase() === 'g') setGrid((value) => !value);
       }
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [screen]);
+  }, [screen, tool, state.selection, state.floating, state.stroke, canvasInteraction]);
 
   return <div className="app-shell">
     <main aria-label="Pixel Studio">
@@ -105,15 +115,16 @@ export default function App() {
         <div className="editor-body">
           <div className="canvas-workspace">
             <div className="canvas-meta"><strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド表示" aria-pressed={grid} onClick={() => setGrid(!grid)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button></div>
-            <PixelCanvas document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
+            <PixelCanvas state={state} document={state.document} color={tool === 'eraser' ? TRANSPARENT : hexToColor(color)} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToHex(sampled)); setTool('pen'); } }} />
-            <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><div><button aria-label="縮小" disabled={zoom === 1 || locked} onClick={() => setZoom(zoom / 2)}>−</button><output aria-label="拡大率">{zoom}倍</output><button aria-label="拡大" disabled={zoom === 16 || locked} onClick={() => setZoom(zoom * 2)}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
+            <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><div><button aria-label="縮小" disabled={zoom <= 1 || locked} onClick={() => setZoom(Math.max(1, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(2))}倍</output><button aria-label="拡大" disabled={zoom >= 16 || locked} onClick={() => setZoom(Math.min(16, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
           </div>
           <aside className="tool-panel" aria-label="描画ツール">
             <section className="tools-section" aria-labelledby="tools-heading">
               <div className="section-label"><h2 id="tools-heading">ツール</h2></div>
               <div className="tool-buttons">{TOOLS.map((item) => <button key={item.tool} className={`tool-button ${tool === item.tool ? 'selected' : ''}`} aria-label={item.label} aria-pressed={tool === item.tool} disabled={locked} onClick={() => setTool(item.tool)}><Icon name={item.tool} size={22} /><span>{item.tool === 'pan' ? '移動' : item.label}</span><kbd>{item.key}</kbd></button>)}</div>
             </section>
+            {tool === 'select' && <SelectionControls state={state} disabled={!!state.stroke || canvasInteraction || autosave.busy || !autosave.ready} dispatch={dispatch} />}
             <BrushControls penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />
             <GuideControls gridMode={gridMode} centerMode={centerMode} onCenter={setCenterMode} onGrid={(mode) => { setGrid(mode !== 'off'); if (mode !== 'off') setGridDirection(mode); }} />
             <PalettePanel presets={PALETTE} palette={palette} color={color} disabled={locked} onSelect={selectColor} />

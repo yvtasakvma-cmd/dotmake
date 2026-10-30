@@ -1,5 +1,6 @@
-type IconName = 'pen' | 'eraser' | 'undo' | 'redo' | 'grid' | 'fill' | 'picker' | 'pan';
+type IconName = 'pen' | 'eraser' | 'undo' | 'redo' | 'grid' | 'fill' | 'picker' | 'pan' | 'select';
 const paths: Record<IconName, string> = {
+  select: 'M8 3H3v5m0 3v2m0 3v5h5m3 0h2m3 0h5v-5m0-3v-2m0-3V3h-5m-3 0h-2',
   pen: 'm15 5 4 4M4 20l4-1L20 7a2.83 2.83 0 0 0-4-4L4 15v5Z',
   eraser: 'm9 19-5-5a2 2 0 0 1 0-3l8-8a2 2 0 0 1 3 0l6 6a2 2 0 0 1 0 3l-7 7H9Zm-2-8 8 8M9 19h12',
   undo: 'M8 5 3 10l5 5M3 10h10a7 7 0 0 1 7 7v2',

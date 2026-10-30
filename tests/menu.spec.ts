@@ -50,13 +50,13 @@ test('named character creation, menu resume and reload preserve image and metada
   await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click();
   await menu(page);
   await page.getByRole('button', { name: '保存した作品を続ける' }).click();
-  expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
+  expect(await pixel(page, 4, 4)).toEqual([0, 0, 0, 255]);
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeEnabled();
   await page.reload(); await menu(page);
   await expect(page.getByText('旅人', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '保存した作品を続ける' }).click();
   await expect(page.getByRole('heading', { name: '旅人', exact: true })).toBeVisible();
-  expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
+  expect(await pixel(page, 4, 4)).toEqual([0, 0, 0, 255]);
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
 });
 
@@ -70,7 +70,7 @@ test('new characters are independent and cancelling setup keeps all earlier work
   await expect(page.getByLabel('作品名', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click();
   await page.getByRole('button', { name: '剣士を開く', exact: true }).click();
-  expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
+  expect(await pixel(page, 4, 4)).toEqual([0, 0, 0, 255]);
   await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click(); await start(page);
   await page.getByLabel('作品名', { exact: true }).fill('魔法使い');
   await page.getByLabel('幅', { exact: true }).fill('24');
@@ -84,7 +84,7 @@ test('new characters are independent and cancelling setup keeps all earlier work
   await expect(page.locator('.project-list li')).toHaveCount(2);
   await page.getByRole('button', { name: '剣士を開く', exact: true }).click();
   await expect(page.locator('canvas')).toHaveAttribute('width', '32');
-  expect(await pixel(page, 4, 4)).toEqual([48, 59, 50, 255]);
+  expect(await pixel(page, 4, 4)).toEqual([0, 0, 0, 255]);
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'キャラクター一覧へ戻る' }).click();
   await page.getByRole('button', { name: '魔法使いを開く', exact: true }).click();

@@ -36,7 +36,7 @@ test('creates preset and rectangular canvases, validates sizes, and allows cance
   await tap(page, 4, 4);
   await page.getByRole('button', { name: '新規作成', exact: true }).click();
   await page.getByRole('button', { name: 'キャンセル' }).click();
-  expect(await rgba(page, 4, 4)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 4, 4)).toEqual([0, 0, 0, 255]);
   await page.getByRole('button', { name: '新規作成', exact: true }).click();
   await page.getByRole('button', { name: '48 × 48', exact: true }).click();
   await page.getByRole('button', { name: '作成する' }).click();
@@ -84,7 +84,7 @@ test('restores completed strokes and rectangular dimensions from IndexedDB', asy
   await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
   await expect(page.locator('canvas')).toHaveAttribute('width', '24');
   await expect(page.locator('canvas')).toHaveAttribute('height', '16');
-  expect(await rgba(page, 23, 15)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 23, 15)).toEqual([0, 0, 0, 255]);
   await expect(page.getByRole('button', { name: '元に戻す', exact: true })).toBeDisabled();
 });
 
@@ -145,7 +145,7 @@ test('zoom and pan change only the view and keep pointer coordinates accurate', 
     return { x, y, clientX: r.left + (x + .5) * r.width / c.width, clientY: r.top + (y + .5) * r.height / c.height };
   });
   await page.mouse.click(hit.clientX, hit.clientY);
-  expect(await rgba(page, hit.x, hit.y)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, hit.x, hit.y)).toEqual([0, 0, 0, 255]);
   await page.getByRole('button', { name: '全体表示', exact: true }).click();
   await expect(page.getByLabel('拡大率')).toHaveText('1倍');
 });
@@ -173,9 +173,9 @@ test('PWA manifest is scoped correctly and a cached app restores and draws offli
   await page.reload();
   await enterEditor(page);
   await expect(page.getByRole('button', { name: '新規作成', exact: true })).toBeEnabled();
-  expect(await rgba(page, 7, 7)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 7, 7)).toEqual([0, 0, 0, 255]);
   await tap(page, 8, 8);
-  expect(await rgba(page, 8, 8)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 8, 8)).toEqual([0, 0, 0, 255]);
   await expect(page.getByText('この端末に保存済み', { exact: true })).toBeVisible();
   await context.setOffline(false);
 });
@@ -214,7 +214,7 @@ test('reports storage write failures while keeping PNG export available', async 
   });
   await tap(page, 3, 3);
   await expect(page.getByText('自動保存できません。PNGで保存してください。', { exact: false })).toBeVisible();
-  expect(await rgba(page, 3, 3)).toEqual([48, 59, 50, 255]);
+  expect(await rgba(page, 3, 3)).toEqual([0, 0, 0, 255]);
   await page.getByRole('button', { name: 'PNG出力', exact: true }).click();
   await expect(page.getByRole('img', { name: '書き出すPNG' })).toBeVisible();
 });

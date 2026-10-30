@@ -61,18 +61,18 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
 
   useEffect(() => {
     if (!ready || !activeId || busy) return;
-    if (state.stroke) { ++sequence.current; setStatus('編集中…'); return; }
+    if (state.stroke || state.floating) { ++sequence.current; setStatus('編集中…'); return; }
     if (pending.current === 0 && saved.current?.id === activeId && saved.current.document === state.document) {
       if (status === '編集中…') { setStatus('この端末に保存済み'); setFailed(false); }
       return;
     }
     void commit(activeId, state.document);
     // commit intentionally runs only for actual editor changes.
-  }, [ready, activeId, busy, state.document, state.stroke]);
+  }, [ready, activeId, busy, state.document, state.stroke, state.floating]);
 
   const flush = async () => !activeRef.current || await commit(activeRef.current, documentRef.current);
   const open = async (id: string) => {
-    if (!ready || switching.current || state.stroke) return false;
+    if (!ready || switching.current || state.stroke || state.floating) return false;
     if (activeRef.current === id) return true;
     switching.current = true; setBusy(true);
     try {
@@ -86,7 +86,7 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
     finally { switching.current = false; setBusy(false); }
   };
   const create = async (document: PixelDocument) => {
-    if (!ready || switching.current || state.stroke) return false;
+    if (!ready || switching.current || state.stroke || state.floating) return false;
     switching.current = true; setBusy(true);
     try {
       if (!await flush()) return false;
@@ -101,7 +101,7 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
   };
 
   const copy = async (id: string) => {
-    if (!ready || switching.current || state.stroke) return false;
+    if (!ready || switching.current || state.stroke || state.floating) return false;
     switching.current = true; setBusy(true); setLibraryMessage('');
     try {
       if (!await flush()) return false;
@@ -113,7 +113,7 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
     finally { switching.current = false; setBusy(false); }
   };
   const remove = async (id: string) => {
-    if (!ready || switching.current || state.stroke) return false;
+    if (!ready || switching.current || state.stroke || state.floating) return false;
     switching.current = true; setBusy(true); setLibraryMessage('');
     try {
       // Wait for queued writes before deletion, so a late autosave cannot

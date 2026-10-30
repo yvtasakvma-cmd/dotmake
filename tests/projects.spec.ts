@@ -105,7 +105,7 @@ test('new project write failure does not create a phantom entry or lose the prev
   await expect(page.getByText('新しい作品を保存できません。', { exact: false })).toBeVisible();
   await back(page); await expect(page.locator('.project-list li')).toHaveCount(1);
   await page.getByRole('button', { name: '保存済みを開く', exact: true }).click();
-  expect(await pixel(page, 3, 3)).toEqual([48,59,50,255]);
+  expect(await pixel(page, 3, 3)).toEqual([0,0,0,255]);
 });
 
 test('single-slot version 1 data and palette migrate once, remain editable and retain a backup', async ({ page, baseURL }) => {
@@ -129,7 +129,7 @@ test('single-slot version 1 data and palette migrate once, remain editable and r
   await draw(page, 4, 4); await saved(page); await back(page); await create(page, '新しい仲間'); await back(page);
   await page.reload(); await ready(page); await expect(page.locator('.project-list li')).toHaveCount(2);
   await page.getByRole('button', { name: '以前の勇者を開く', exact: true }).click();
-  expect(await pixel(page, 4, 4)).toEqual([48,59,50,255]);
+  expect(await pixel(page, 4, 4)).toEqual([0,0,0,255]);
   await back(page); await page.reload(); await ready(page); await expect(page.locator('.project-list li')).toHaveCount(2);
   const backup = await page.evaluate(() => new Promise<number>((resolve) => {
     const r = indexedDB.open('pixel-studio');
