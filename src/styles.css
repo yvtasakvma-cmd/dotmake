@@ -148,11 +148,14 @@ button:not(:disabled):hover,.action:hover {
   color:#58634f;
 }
 
+.grid-controls { display:flex; align-items:center; flex-shrink:0; margin-left:auto; }
+.grid-toggle { min-width:44px; min-height:44px; padding:4px; border:0; background:none; }
+
 .grid-state {
   border:1px solid #cdd2c0;
   padding:2px 4px;
   border-radius:3px;
-  font:9px ui-monospace,monospace;
+  font:11px ui-monospace,monospace;
 }
 
 .active .grid-state {
@@ -847,15 +850,28 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
 .frame-utility-row summary { display: list-item; padding: 12px 4px; min-height: 44px; white-space: nowrap; font-size: 11px; }
 .frame-utility-row .canvas-meta { flex: 1; min-width: 0; min-height: 44px; gap: 4px; }
 .frame-utility-row .canvas-meta strong { font-size: 10px; white-space: nowrap; }
-.frame-utility-row .grid-button { margin-left: auto; flex-shrink: 0; padding: 4px; }
+.frame-utility-row .grid-button { flex-shrink: 0; padding: 4px; }
+.frame-list-label-short { display:none; }
 .frame-table-panel { position: absolute; top: 100%; left: 0; right: 0; z-index: 5; max-height: 65svh; overflow: auto; padding: 12px; border: 1px solid #bfc5b3; border-radius: 8px; background: #fbfaf6; box-shadow: 0 6px 16px #30362f30; }
 .frame-copy-hint { margin: 0 0 6px; font-size: 10px; }
+@media (min-width:761px) and (max-width:900px) {
+  .frame-utility-row .grid-button { font-size:0; gap:0; min-width:44px; }
+  .frame-list-label-full { display:none; }
+  .frame-list-label-short { display:inline; }
+}
 @media (max-width: 760px) {
   .frame-utility-row { gap: 4px; }
   .frame-utility-row .frame-copy-actions button span { display: none; }
   .frame-utility-row .grid-button { font-size: 0; gap: 0; min-width: 44px; }
-  .frame-utility-row .grid-button .grid-state { display: none; }
   .frame-utility-row .canvas-meta strong { font-size: 9px; }
+}
+@media (max-width:360px) {
+  .frame-utility-row { gap:2px; }
+  .frame-utility-row .frame-copy-actions { gap:0; }
+  .frame-utility-row .canvas-meta { gap:2px; }
+  .frame-utility-row summary { padding-inline:0; font-size:10px; }
+  .frame-list-label-full { display:none; }
+  .frame-list-label-short { display:inline; }
 }
 
 .opacity-control { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }

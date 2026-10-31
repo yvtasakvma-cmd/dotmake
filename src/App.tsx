@@ -49,8 +49,8 @@ export default function App() {
   const [deleting, setDeleting] = useState<ProjectSummary | null>(null);
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState(PALETTE[0].hex);
-  const [grid, setGrid] = useState(true);
-  const [gridDirection, setGridDirection] = useState<Exclude<GuideMode, 'off'>>('both');
+  const [guidesVisible, setGuidesVisible] = useState(true);
+  const [gridMode, setGridMode] = useState<GuideMode>('both');
   const [centerMode, setCenterMode] = useState<GuideMode>('off');
   const [penSize, setPenSize] = useState(1);
   const [eraserSize, setEraserSize] = useState(1);
@@ -86,7 +86,6 @@ export default function App() {
     if (screen === 'editor' && autosave.ready && !autosave.busy && !github.busy && !autosave.hasProject) setScreen('library');
   }, [screen, autosave.ready, autosave.busy, autosave.hasProject, github.busy]);
   const { width, height } = state.document;
-  const gridMode = grid ? gridDirection : 'off';
   const brushSize = tool === 'eraser' ? eraserSize : penSize;
   const paintColor = hexToColor(color);
   const selectColor = (value: string) => { setColor(value); setTool((current) => current === 'fill' ? 'fill' : 'pen'); };
@@ -112,7 +111,7 @@ export default function App() {
         }
         const selected = TOOLS.find((item) => item.key.toLowerCase() === event.key.toLowerCase());
         if (selected && !state.floating && !state.stroke) setTool(selected.tool);
-        if (event.key.toLowerCase() === 'g') setGrid((value) => !value);
+        if (event.key.toLowerCase() === 'g') setGuidesVisible((value) => !value);
       }
     };
     window.addEventListener('keydown', keyboard);
@@ -148,10 +147,10 @@ export default function App() {
         </div>
         <div className="editor-body">
           <div className="canvas-workspace">
-            <FrameControls state={state} disabled={locked} dispatch={dispatch} onPlay={() => setWalkPreview(true)} metadata={<> <strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド設定" aria-haspopup="dialog" aria-expanded={guidesOpen} disabled={locked} onClick={() => setGuidesOpen(true)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button> </>} />
+            <FrameControls state={state} disabled={locked} dispatch={dispatch} onPlay={() => setWalkPreview(true)} metadata={<> <strong>{width}×{height}px</strong><div className="grid-controls" role="group" aria-label="グリッド"><button className="grid-button" aria-label="グリッド設定" aria-haspopup="dialog" aria-expanded={guidesOpen} disabled={locked} onClick={() => setGuidesOpen(true)}><Icon name="grid" size={15} />グリッド</button><button className={`grid-toggle ${guidesVisible ? 'active' : ''}`} aria-label="グリッドの表示" aria-pressed={guidesVisible} title="グリッドと中心線をまとめてON/OFF (G)" disabled={locked} onClick={() => setGuidesVisible((value) => !value)}><span className="grid-state">{guidesVisible ? 'ON' : 'OFF'}</span></button></div> </>} />
             <div className={`canvas-drawing-row ${mobileTools ? 'mobile-drawing-row' : ''}`}>
               {!mobileTools && <BrushControls tool={tool} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />}
-            <PixelCanvas state={state} document={state.document} color={tool === 'eraser' || paintColor[3] === 0 ? TRANSPARENT : paintColor} gridMode={gridMode} centerMode={centerMode} background={background} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
+            <PixelCanvas state={state} document={state.document} color={tool === 'eraser' || paintColor[3] === 0 ? TRANSPARENT : paintColor} gridMode={guidesVisible ? gridMode : 'off'} centerMode={guidesVisible ? centerMode : 'off'} background={background} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToPaintHex(sampled)); setTool('pen'); } }} />
               {!mobileTools && quickTools}
             </div>
@@ -186,7 +185,7 @@ export default function App() {
       catch { setError('幅・高さは1〜256の整数で指定してください。'); }
     }} />}
     {brushPopup && <BrushSizeDialog tool={brushPopup} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} onClose={() => setBrushPopup(null)} />}
-    {guidesOpen && <GuideDialog gridMode={gridMode} centerMode={centerMode} onCenter={setCenterMode} onGrid={(mode) => { setGrid(mode !== 'off'); if (mode !== 'off') setGridDirection(mode); }} onClose={() => setGuidesOpen(false)} />}
+    {guidesOpen && <GuideDialog gridMode={gridMode} centerMode={centerMode} onCenter={setCenterMode} onGrid={setGridMode} onClose={() => setGuidesOpen(false)} />}
     {backgroundOpen && <BackgroundDialog background={background} warning={backgroundWarning} onChange={setBackground} onClose={() => setBackgroundOpen(false)} />}
     {walkPreview && state.document.frames && <WalkPreviewDialog document={state.document} background={background} onClose={() => setWalkPreview(false)} />}
     {png && <ExportDialog blob={png} filename={`pixel-studio-${width * (state.document.frames ? 3 : 1)}x${height * (state.document.frames ? 4 : 1)}.png`} onClose={() => setPng(null)} />}

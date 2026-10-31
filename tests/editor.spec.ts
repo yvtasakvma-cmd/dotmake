@@ -53,9 +53,7 @@ test('selects colours, erases true alpha, and restores erased pixels', async ({ 
 
 test('grid and viewport changes preserve pixels and history', async ({ page }) => {
   await line(page, [0, 31], [31, 0]);
-  await page.getByRole('button', { name: 'グリッド設定', exact: true }).click();
-  await page.getByLabel('グリッドの向き', { exact: true }).selectOption('off');
-  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await page.getByRole('button', { name: 'グリッドの表示', exact: true }).click();
   await expect(page.locator('.grid-state')).toHaveText('OFF');
   const before = await canvas(page).evaluate((element) => (element as HTMLCanvasElement).toDataURL());
   await page.setViewportSize({ width: 844, height: 390 });

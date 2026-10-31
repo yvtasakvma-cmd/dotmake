@@ -22,7 +22,7 @@ export function GuideDialog({ gridMode, centerMode, onGrid, onCenter, onClose }:
       { label: 'グリッドの向き', value: gridMode, onChange: onGrid },
       { label: '中心線', value: centerMode, onChange: onCenter },
     ].map(({ label, value, onChange }) => <label key={label}>{label}<select aria-label={label} value={value} onChange={(event) => onChange(event.target.value as GuideMode)}>{MODES.map((mode) => <option key={mode.value} value={mode.value}>{mode.label}</option>)}</select></label>)}</div>
-    <p className="palette-hint">補助線はPNGに含まれません。</p>
+    <p className="palette-hint">ON/OFFでグリッドと中心線をまとめて切り替えます。OFF中も設定は保持します。補助線はPNGに含まれません。</p>
     <div className="dialog-actions"><button className="primary" onClick={onClose}>閉じる</button></div>
   </dialog>;
 }
