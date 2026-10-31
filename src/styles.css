@@ -408,6 +408,12 @@ kbd {
   margin:8px 0;
 }
 
+.pwa-status .app-version {
+  margin-top:16px;
+  color:#606b56;
+  font:12px ui-monospace,monospace;
+}
+
 .pwa-status summary {
   cursor:pointer;
   min-height:44px;

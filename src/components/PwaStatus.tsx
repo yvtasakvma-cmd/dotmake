@@ -9,5 +9,6 @@ export function PwaStatus({ canUpdate }: { canUpdate: boolean }) {
     {offlineReady && <p role="status">オフラインで使用できます。</p>}
     {error && <p role="alert">オフライン機能を準備できませんでした。オンラインで開き直してください。</p>}
     <details><summary>アプリとして使う</summary><p>iPhone：Safariの共有メニューから「ホーム画面に追加」。Windows：Edge／Chromeのインストール操作を使用します。初回は通信が必要です。</p></details>
+    <p className="app-version">Pixel Studio v{__APP_VERSION__}</p>
   </div>;
 }

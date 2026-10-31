@@ -1,10 +1,12 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { version } from './package.json';
 
 const base = process.env.VITE_BASE_PATH || '/';
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [react(), VitePWA({
     registerType: 'prompt',
     includeAssets: ['favicon.svg', 'icon-180.png'],
