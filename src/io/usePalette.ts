@@ -38,6 +38,7 @@ export function usePalette() {
   };
   return {
     colors, ready, busy, message, failed,
+    reload: async () => { const saved = await loadPalette(); setColors(saved); setFailed(false); setReady(true); setMessage(''); },
     add: (color: string) => {
       const hex = color.toLowerCase();
       if (/^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(hex) && !colors.includes(hex)) void update([...colors, hex]);

@@ -9,6 +9,19 @@
   --line:#dedfd4;
 }
 
+.github-sync-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.github-sync-bar p { font-size:12px; margin:0; overflow-wrap:anywhere; }
+.github-dialog { width:min(560px, calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow-y:auto; }
+.github-dialog p,.github-help li { font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
+.github-help { margin:16px 0; }
+.github-help summary { cursor:pointer; min-height:44px; align-content:center; }
+.github-help ol { padding-left:22px; }
+.github-help li { margin:10px 0; }
+.github-dialog form>label { display:flex; flex-direction:column; gap:7px; margin:14px 0; font-size:13px; }
+.github-dialog form>label input:not([type=checkbox]) { min-width:0; width:100%; padding:12px; border:1px solid var(--line); border-radius:6px; background:#fff; font-size:16px; }
+.github-dialog form>.github-remember { flex-direction:row; align-items:center; min-height:44px; }
+.github-dialog .dialog-actions { flex-wrap:wrap; }
+
 * {
   box-sizing:border-box;
 }

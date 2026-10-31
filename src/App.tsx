@@ -25,6 +25,8 @@ import { createEditor, editorReducer } from './model/editor';
 import { useAutosave } from './io/useAutosave';
 import { encodePng } from './io/png';
 import { usePalette } from './io/usePalette';
+import { useGitHubSync } from './io/useGitHubSync';
+import { GitHubSyncDialog } from './components/GitHubSyncDialog';
 
 const PALETTE = [
   { hex: '#000000', name: '黒' }, { hex: '#f6f4ee', name: 'ミルク' },
@@ -66,9 +68,19 @@ export default function App() {
   const [walkPreview, setWalkPreview] = useState(false);
   const [guidesOpen, setGuidesOpen] = useState(false);
   const [error, setError] = useState('');
+  const [syncOpen, setSyncOpen] = useState(false);
   const autosave = useAutosave(state, dispatch);
   const drawing = state.stroke !== null || state.floating !== null;
-  const locked = drawing || canvasInteraction || !autosave.ready || autosave.busy;
+  const canSync = autosave.ready && !autosave.busy && !autosave.failed && palette.ready && !palette.busy && !drawing && !canvasInteraction && !deleting && !newCanvas && !walkPreview && !guidesOpen && !brushPopup && !png && !exporting && screen !== 'character';
+  const github = useGitHubSync({ enabled: canSync, paused: syncOpen, execute: async (operation) => {
+    const result = await autosave.synchronize(operation);
+    await palette.reload();
+    return result;
+  } });
+  const locked = drawing || canvasInteraction || !autosave.ready || autosave.busy || github.busy;
+  useEffect(() => {
+    if (screen === 'editor' && autosave.ready && !autosave.busy && !github.busy && !autosave.hasProject) setScreen('library');
+  }, [screen, autosave.ready, autosave.busy, autosave.hasProject, github.busy]);
   const { width, height } = state.document;
   const gridMode = grid ? gridDirection : 'off';
   const brushSize = tool === 'eraser' ? eraserSize : penSize;
@@ -80,7 +92,7 @@ export default function App() {
 
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (screen !== 'editor' || canvasInteraction) return;
+      if (screen !== 'editor' || canvasInteraction || autosave.busy || github.busy || !autosave.ready) return;
       const target = event.target;
       if (document.querySelector('dialog[open]') || (target instanceof HTMLElement && (target.matches('input, textarea, select') || target.isContentEditable))) return;
       if (event.metaKey || event.ctrlKey) {
@@ -101,16 +113,16 @@ export default function App() {
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [screen, tool, state.selection, state.floating, state.stroke, canvasInteraction]);
+  }, [screen, tool, state.selection, state.floating, state.stroke, canvasInteraction, autosave.busy, autosave.ready, github.busy]);
 
   const quickTools = <QuickTools tool={tool} disabled={locked} mobile={mobileTools} onSelect={setTool} onSize={(value) => { setTool(value); setBrushPopup(value); }} />;
   return <div className="app-shell">
     <main aria-label="Pixel Studio">
-      {screen === 'menu' && <StartMenu ready={autosave.ready && !autosave.busy} onCharacter={() => setScreen('library')} />}
-      {screen === 'library' && <CharacterLibrary ready={autosave.ready && !autosave.busy} projects={autosave.projects} activeId={autosave.activeId} clipboardName={autosave.clipboard?.name} message={autosave.libraryMessage}
+      {screen === 'menu' && <StartMenu ready={autosave.ready && !autosave.busy && !github.busy} onCharacter={() => setScreen('library')} />}
+      {screen === 'library' && <CharacterLibrary ready={autosave.ready && !autosave.busy && !github.busy} projects={autosave.projects} activeId={autosave.activeId} clipboardName={autosave.clipboard?.name} message={autosave.libraryMessage}
         onBack={() => setScreen('menu')} onNew={() => setScreen('character')} onOpen={openEditor} onCopy={(id) => { void autosave.copy(id); }} onDelete={setDeleting}
         onPaste={() => { void autosave.paste().then((created) => { if (created) { setCenterMode('vertical'); setZoom(1); setTool('pen'); setScreen('editor'); setError(''); } }); }} />}
-      {screen === 'character' && <CharacterSetup disabled={autosave.busy} onBack={() => setScreen('library')} onCreate={(name, w, h) => {
+      {screen === 'character' && <CharacterSetup disabled={autosave.busy || github.busy} onBack={() => setScreen('library')} onCreate={(name, w, h) => {
         try {
           void autosave.create(createCharacter(w, h, name)).then((created) => {
             if (created) { setCenterMode('vertical'); setZoom(1); setTool('pen'); setScreen('editor'); setError(''); }
@@ -156,8 +168,14 @@ export default function App() {
       <p className={`save-status ${autosave.failed ? 'error' : ''}`} role="status">{autosave.status}</p>
       {autosave.warning && <p role="alert">{autosave.warning}</p>}
       {error && <p role="alert">{error}</p>}
-      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !walkPreview && !guidesOpen && !brushPopup} />
+      <section className="github-sync-bar" aria-label="GitHub保存">
+        <button disabled={!canSync || github.busy} onClick={() => setSyncOpen(true)}>GitHub保存の設定</button>
+        {github.config && <button disabled={!canSync || github.busy} onClick={() => { void github.run(); }}>{github.busy ? '同期中…' : '今すぐ同期'}</button>}
+        <p role="status" className={github.failed ? 'error' : ''}>{github.config ? github.busy || github.failed ? github.message : github.pending ? '端末に保存済み・GitHubは同期待ち' : github.message : 'GitHub保存は未設定です'}</p>
+      </section>
+      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !github.busy && !syncOpen && !walkPreview && !guidesOpen && !brushPopup} />
     </main>
+    {syncOpen && <GitHubSyncDialog config={github.config} busy={github.busy} message={github.message} failed={github.failed} onConfigure={github.configure} onDisconnect={github.disconnect} onClose={() => setSyncOpen(false)} />}
     {deleting && <DeleteProjectDialog name={deleting.name} disabled={autosave.busy} onClose={() => setDeleting(null)} onDelete={() => autosave.remove(deleting.id)} />}
     {newCanvas && <NewCanvasDialog disabled={autosave.busy} onClose={() => setNewCanvas(false)} onCreate={(w, h, name) => {
       try { void autosave.create(createCharacter(w, h, name)).then((created) => { if (created) { setTool('pen'); setCenterMode('vertical'); setZoom(1); setNewCanvas(false); setError(''); } }); }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type Dispatch } from 'react';
 import type { EditorAction, EditorState } from '../model/editor';
 import { copiedCharacter, createDocument, type PixelDocument } from '../model/document';
 import { deleteProject, loadLibrary, loadProject, saveProject, saveProjectClipboard, type ProjectSummary } from './storage';
+import { encodeProject, sameProject } from './syncSnapshot';
 
 export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>) {
   const [ready, setReady] = useState(false);
@@ -133,6 +134,32 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
   };
   const paste = () => clipboard ? create(copiedCharacter(clipboard)) : Promise.resolve(false);
 
+  const synchronize = async <T,>(operation: () => Promise<T>): Promise<T> => {
+    if (!ready || switching.current || state.stroke || state.floating) throw new Error('編集中の操作が終わってから同期してください。');
+    switching.current = true; setBusy(true);
+    try {
+      if (!await flush()) throw new Error('端末への保存が完了していません。先に保存エラーを確認してください。');
+      const result = await operation();
+      const library = await loadLibrary();
+      setProjects(library.projects); setWarning(library.warning);
+      const id = activeRef.current;
+      if (id && !library.projects.some((project) => project.id === id)) {
+        activeRef.current = null; saved.current = null; setActiveId(null);
+        dispatch({ type: 'replace', document: createDocument() });
+        ++sequence.current; setStatus('作品を選ぶか、新しく作成してください');
+      } else if (id) {
+        const document = await loadProject(id);
+        if (!sameProject(encodeProject({ ...documentRef.current, id, updatedAt: 0 }), encodeProject({ ...document, id, updatedAt: 0 }))) {
+          saved.current = { id, document };
+          documentRef.current = document;
+          dispatch({ type: 'replace', document });
+        }
+        setStatus('この端末に保存済み');
+      }
+      return result;
+    } finally { switching.current = false; setBusy(false); }
+  };
+
   // A document can change before its autosave effect runs. Never show the
   // previous image's saved status while the current image is still unsaved.
   const currentStatus = activeId && !busy && !failed
@@ -147,5 +174,5 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
     return () => window.removeEventListener('beforeunload', warn);
   }, [activeId, currentStatus]);
 
-  return { ready, busy, status: currentStatus, failed, warning, projects, activeId, hasProject: activeId !== null, open, create, copy, remove, paste, clipboard, libraryMessage };
+  return { ready, busy, status: currentStatus, failed, warning, projects, activeId, hasProject: activeId !== null, open, create, copy, remove, paste, synchronize, clipboard, libraryMessage };
 }

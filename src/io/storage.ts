@@ -1,4 +1,12 @@
 import { asCharacter, createDocument, FRAME_COUNT, type PixelDocument } from '../model/document';
+import { decodeProject, emptySnapshot, encodeProject, parseSnapshot, sameSnapshot, type SyncSnapshot } from './syncSnapshot';
+
+export const STORAGE_CHANGED = 'pixel-studio-storage-changed';
+function bumpRevision(store: IDBObjectStore) {
+  const request = store.get('library-revision');
+  request.onsuccess = () => store.put((Number(request.result) || 0) + 1, 'library-revision');
+}
+function notifyChange() { window.dispatchEvent(new Event(STORAGE_CHANGED)); }
 
 export interface ProjectSummary {
   id: string;
@@ -132,11 +140,12 @@ export async function deleteProject(id: string): Promise<void> {
   const db = await open();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(['projects', 'documents'], 'readwrite');
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => { notifyChange(); resolve(); };
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
     try {
       tx.objectStore('projects').delete(id);
+      bumpRevision(tx.objectStore('documents'));
       if (id === 'legacy-current') {
         tx.objectStore('documents').delete('current');
         tx.objectStore('documents').put(true, 'projects-migrated');
@@ -161,11 +170,12 @@ export async function saveProject(id: string, document: PixelDocument): Promise<
   const db = await open();
   const record: StoredProject = { ...document, id, version: document.frames ? 2 : 1, updatedAt: Date.now() };
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction('projects', 'readwrite');
-    tx.oncomplete = () => resolve();
+    const tx = db.transaction(['projects', 'documents'], 'readwrite');
+    tx.oncomplete = () => { notifyChange(); resolve(); };
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
     tx.objectStore('projects').put(record);
+    bumpRevision(tx.objectStore('documents'));
   });
   return summary(record);
 }
@@ -189,9 +199,62 @@ export async function savePalette(colors: readonly string[]): Promise<void> {
   const db = await open();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction('documents', 'readwrite');
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => { notifyChange(); resolve(); };
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
     tx.objectStore('documents').put([...colors], 'palette');
+    bumpRevision(tx.objectStore('documents'));
+  });
+}
+
+export class LocalSyncChanged extends Error {}
+export async function readSyncState(repository: string): Promise<{ snapshot: SyncSnapshot; base: SyncSnapshot; revision: number }> {
+  const db = await open();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['projects', 'documents'], 'readonly');
+    const records = tx.objectStore('projects').getAll();
+    const documents = tx.objectStore('documents');
+    const palette = documents.get('palette');
+    const base = documents.get(`github-sync-base:${repository}`);
+    const revision = documents.get('library-revision');
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+    tx.oncomplete = () => {
+      try {
+        const snapshot = parseSnapshot(JSON.stringify({
+          version: 1,
+          projects: (records.result as StoredProject[]).map((record) => encodeProject({ ...decode(record), id: record.id, updatedAt: record.updatedAt })),
+          palette: palette.result ?? [],
+        }));
+        resolve({ snapshot, base: base.result ? parseSnapshot(JSON.stringify(base.result)) : emptySnapshot(), revision: Number(revision.result) || 0 });
+      } catch (error) { reject(error); }
+    };
+  });
+}
+
+// The revision check and library replacement commit in one transaction. A save
+// from another tab during the network request can never be silently overwritten.
+export async function applySyncState(repository: string, expected: number, before: SyncSnapshot, snapshot: SyncSnapshot): Promise<void> {
+  const db = await open();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(['projects', 'documents'], 'readwrite');
+    const documents = tx.objectStore('documents');
+    const revision = documents.get('library-revision');
+    let changed = false;
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(changed ? new LocalSyncChanged('別のタブで作品が変更されました。作品は保持しています。タブを一つにして再同期してください。') : tx.error);
+    revision.onsuccess = () => {
+      if ((Number(revision.result) || 0) !== expected) { changed = true; tx.abort(); return; }
+      if (!sameSnapshot(before, snapshot)) {
+        documents.put({ repository, savedAt: Date.now(), snapshot: before }, 'github-sync-backup');
+        const projects = tx.objectStore('projects');
+        projects.clear();
+        for (const project of snapshot.projects) projects.put(decodeProject(project));
+        documents.put(snapshot.palette, 'palette');
+        documents.put(expected + 1, 'library-revision');
+      }
+      documents.put(snapshot, `github-sync-base:${repository}`);
+    };
   });
 }
