@@ -2,9 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DIRECTIONS, POSES, type PixelDocument } from '../model/document';
 import { renderDocument } from '../drawing/render';
 import type { CanvasBackground } from '../model/view';
+import { DEFAULT_WALK_FPS, WALK_CYCLE } from '../model/animation';
 
-// Standing between the two steps makes a three-pose walk loop smoothly.
-const WALK_CYCLE = [1, 0, 1, 2] as const;
 const PREVIEW_SCALES = [0.25, 0.5, 1, 2, 4, 8, 16] as const;
 
 export function WalkPreviewDialog({ document, background, previewScale, onScale, onClose }: {
@@ -15,7 +14,7 @@ export function WalkPreviewDialog({ document, background, previewScale, onScale,
   const canvas = useRef<HTMLCanvasElement>(null);
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [fps, setFps] = useState(6);
+  const [fps, setFps] = useState(DEFAULT_WALK_FPS);
   const [row, setRow] = useState(() => Math.floor(document.frameIndex! / POSES.length));
   const direction = DIRECTIONS[row];
   const pose = WALK_CYCLE[step];
