@@ -139,6 +139,8 @@ test('previews only the selected direction, loops its poses and leaves the artwo
     const dialog = page.getByRole('dialog', { name: `${directions[row]}の歩行プレビュー`, exact: true });
     await expect(dialog).toBeVisible();
     const preview = dialog.locator('canvas');
+    const scale = dialog.getByLabel('プレビューの表示倍率', { exact: true });
+    await expect(scale).toHaveValue(row === 0 ? '8' : '4');
     async function assertPose(column: number) {
       await expect(dialog.getByLabel('再生中のポーズ')).toHaveText(poses[column]);
       expect(await preview.evaluate((canvas: HTMLCanvasElement) => {
@@ -147,6 +149,18 @@ test('previews only the selected direction, loops its poses and leaves the artwo
       })).toEqual(Array.from({ length: 3 }, (_, x) => x === column ? rgba[row] : [0, 0, 0, 0]));
     }
     await assertPose(1);
+    if (row === 0) {
+      for (const zoom of [0.25, 0.5, 1, 2, 4, 8, 16]) {
+        await scale.selectOption(String(zoom));
+        await expect(preview).toHaveCSS('width', `${32 * zoom}px`);
+        await expect(preview).toHaveCSS('height', `${32 * zoom}px`);
+        await expect(preview).toHaveAttribute('width', '32');
+        await expect(preview).toHaveAttribute('height', '32');
+        await assertPose(1);
+      }
+      expect(await dialog.locator('.walk-preview-stage').evaluate((element) => element.scrollWidth > element.clientWidth && element.scrollHeight > element.clientHeight)).toBe(true);
+      await scale.selectOption('4');
+    }
     for (const column of [0, 1, 2, 1]) { await page.clock.runFor(167); await assertPose(column); }
     await dialog.getByRole('button', { name: '一時停止', exact: true }).click();
     await page.clock.runFor(2000); await assertPose(1);

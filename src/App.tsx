@@ -71,6 +71,7 @@ export default function App() {
   const [png, setPng] = useState<Blob | null>(null);
   const [exporting, setExporting] = useState(false);
   const [walkPreview, setWalkPreview] = useState(false);
+  const [previewScale, setPreviewScale] = useState<number | null>(null);
   const [guidesOpen, setGuidesOpen] = useState(false);
   const [backgroundOpen, setBackgroundOpen] = useState(false);
   const [error, setError] = useState('');
@@ -190,7 +191,7 @@ export default function App() {
     {brushPopup && <BrushSizeDialog tool={brushPopup} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} onClose={() => setBrushPopup(null)} />}
     {guidesOpen && <GuideDialog gridMode={gridMode} centerMode={centerMode} onCenter={setCenterMode} onGrid={setGridMode} onClose={() => setGuidesOpen(false)} />}
     {backgroundOpen && <BackgroundDialog background={background} warning={backgroundWarning} onChange={setBackground} onClose={() => setBackgroundOpen(false)} />}
-    {walkPreview && state.document.frames && <WalkPreviewDialog document={state.document} background={background} onClose={() => setWalkPreview(false)} />}
+    {walkPreview && state.document.frames && <WalkPreviewDialog document={state.document} background={background} previewScale={previewScale} onScale={setPreviewScale} onClose={() => setWalkPreview(false)} />}
     {png && <ExportDialog blob={png} filename={`pixel-studio-${width * (state.document.frames ? 3 : 1)}x${height * (state.document.frames ? 4 : 1)}.png`} onClose={() => setPng(null)} />}
   </div>;
 }
