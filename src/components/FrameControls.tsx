@@ -1,6 +1,6 @@
 import { useMemo, type Dispatch, type ReactNode } from 'react';
 import { Icon } from './Icon';
-import { DIRECTIONS, POSES } from '../model/document';
+import { DIRECTIONS, FRAME_COUNT, POSES } from '../model/document';
 import type { EditorAction, EditorState } from '../model/editor';
 
 function FrameThumbnail({ pixels, width, height }: { pixels: Uint8ClampedArray; width: number; height: number }) {
@@ -23,7 +23,7 @@ export function FrameControls({ state, disabled, dispatch, onPlay, metadata }: {
   const sameSize = frameClipboard?.width === document.width && frameClipboard.height === document.height;
   return <section className="frame-navigation" aria-label="歩行グラフィックのコマ切り替え">
     <div className="frame-nav-row">
-      <div className="direction-buttons"><button aria-label="前の向き" disabled={disabled || row === 0} onClick={() => dispatch({ type: 'frame', index: index - 3 })}>↑</button><button aria-label="次の向き" disabled={disabled || row === 3} onClick={() => dispatch({ type: 'frame', index: index + 3 })}>↓</button></div>
+      <div className="direction-buttons"><button aria-label="前の向き" disabled={disabled} onClick={() => dispatch({ type: 'frame', index: (index + FRAME_COUNT - POSES.length) % FRAME_COUNT })}>↑</button><button aria-label="次の向き" disabled={disabled} onClick={() => dispatch({ type: 'frame', index: (index + POSES.length) % FRAME_COUNT })}>↓</button></div>
       <button aria-label="前のポーズ" disabled={disabled || column === 0} onClick={() => dispatch({ type: 'frame', index: index - 1 })}>←</button>
       <button aria-label="次のポーズ" disabled={disabled || column === 2} onClick={() => dispatch({ type: 'frame', index: index + 1 })}>→</button>
       <output aria-label="編集中のコマ">{DIRECTIONS[row]}・{POSES[column]}</output>

@@ -20,8 +20,18 @@ async function choose(page: Page, index: number) {
 
 test.beforeEach(async ({ page }) => { await page.goto('.'); await enterEditor(page); });
 
-test('switches directions and poses and copies a complete frame with transparency and undo', async ({ page }) => {
+test('switches directions and poses and copies a complete frame with transparency and undo', async ({ page, isMobile }) => {
   await expect(page.getByLabel('編集中のコマ')).toHaveText('正面・直立');
+  for (const [column, pose] of poses.entries()) {
+    await choose(page, column);
+    const up = page.getByRole('button', { name: '前の向き', exact: true });
+    if (isMobile) await up.tap(); else await up.click();
+    await expect(page.getByLabel('編集中のコマ')).toHaveText(`後ろ・${pose}`);
+    const down = page.getByRole('button', { name: '次の向き', exact: true });
+    if (isMobile) await down.tap(); else await down.click();
+    await expect(page.getByLabel('編集中のコマ')).toHaveText(`正面・${pose}`);
+  }
+  await choose(page, 1);
   await expect(page.getByRole('button', { name: '1コマ全体貼り付け', exact: true })).toBeDisabled();
   await paint(page, 3, 4);
   await page.getByRole('button', { name: '1コマ全体コピー', exact: true }).click();
