@@ -788,6 +788,9 @@ button.danger-button:not(:disabled):hover { background: #fae8df; }
 
 .walk-preview-button { width: 100%; margin-top: 10px; }
 .walk-preview-dialog { width: min(440px, calc(100% - 24px)); }
+.walk-preview-directions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin-bottom:12px; }
+.walk-preview-directions button { min-width:0; padding:6px 2px; }
+.walk-preview-directions button[aria-pressed="true"] { background:#f5d790; border-color:#b89647; }
 .walk-preview-stage { height:min(40dvh,280px); overflow:auto; overscroll-behavior:contain; background-color: #fff; background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0); background-size: 16px 16px; }
 .walk-preview-content { min-width:100%; min-height:100%; display:grid; place-items:center; padding:12px; }
 .walk-preview-stage canvas { display:block; max-width:none; image-rendering:pixelated; }

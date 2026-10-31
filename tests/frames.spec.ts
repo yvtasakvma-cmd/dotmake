@@ -119,7 +119,7 @@ test('corrupt frame arrays are retained and reported without replacing the saved
   }))).toBe(11);
 });
 
-test('previews only the selected direction, loops its poses and leaves the artwork unchanged', async ({ page }) => {
+test('changes direction inside the preview while preserving scale, playback and the editor artwork', async ({ page, isMobile }) => {
   const colours = ['#ff0000', '#00ff00', '#0000ff', '#ffff00'];
   const rgba = [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255], [255, 255, 0, 255]];
   for (let row = 0; row < 4; row++) {
@@ -136,8 +136,10 @@ test('previews only the selected direction, loops its poses and leaves the artwo
     await choose(page, row * 3 + 2);
     const before = await editor.evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
     await page.getByRole('button', { name: '歩行を再生', exact: false }).click();
-    const dialog = page.getByRole('dialog', { name: `${directions[row]}の歩行プレビュー`, exact: true });
+    const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAccessibleName(`${directions[row]}の歩行プレビュー`);
+    let previewRow = row;
     const preview = dialog.locator('canvas');
     const scale = dialog.getByLabel('プレビューの表示倍率', { exact: true });
     await expect(scale).toHaveValue(row === 0 ? '8' : '4');
@@ -146,7 +148,15 @@ test('previews only the selected direction, loops its poses and leaves the artwo
       expect(await preview.evaluate((canvas: HTMLCanvasElement) => {
         const context = canvas.getContext('2d')!;
         return Array.from({ length: 3 }, (_, x) => [...context.getImageData(x, 0, 1, 1).data]);
-      })).toEqual(Array.from({ length: 3 }, (_, x) => x === column ? rgba[row] : [0, 0, 0, 0]));
+      })).toEqual(Array.from({ length: 3 }, (_, x) => x === column ? rgba[previewRow] : [0, 0, 0, 0]));
+    }
+    async function changeDirection(target: number) {
+      const button = dialog.getByRole('button', { name: directions[target], exact: true });
+      if (isMobile) await button.tap(); else await button.click();
+      previewRow = target;
+      await expect(button).toHaveAttribute('aria-pressed', 'true');
+      await expect(dialog).toHaveAccessibleName(`${directions[target]}の歩行プレビュー`);
+      await expect(scale).toHaveValue('4');
     }
     await assertPose(1);
     if (row === 0) {
@@ -164,9 +174,20 @@ test('previews only the selected direction, loops its poses and leaves the artwo
     for (const column of [0, 1, 2, 1]) { await page.clock.runFor(167); await assertPose(column); }
     await dialog.getByRole('button', { name: '一時停止', exact: true }).click();
     await page.clock.runFor(2000); await assertPose(1);
+    if (row === 0) {
+      for (const target of [1, 2, 3, 0]) {
+        await changeDirection(target); await assertPose(1);
+        await expect(dialog.getByRole('button', { name: '再生を続ける', exact: true })).toBeVisible();
+      }
+    }
     await dialog.getByLabel('再生速度', { exact: true }).selectOption('2');
     await dialog.getByRole('button', { name: '再生を続ける', exact: true }).click();
     await page.clock.runFor(500); await assertPose(0);
+    if (row === 0) {
+      await changeDirection(3); await assertPose(0);
+      await page.clock.runFor(500); await assertPose(1);
+      await changeDirection(0); await assertPose(1);
+    }
     if (row % 2) await page.keyboard.press('Escape');
     else await dialog.getByRole('button', { name: '閉じる', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
