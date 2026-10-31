@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { DIRECTIONS, POSES, type PixelDocument } from '../model/document';
 import { renderDocument } from '../drawing/render';
+import type { CanvasBackground } from '../model/view';
 
 // Standing between the two steps makes a three-pose walk loop smoothly.
 const WALK_CYCLE = [1, 0, 1, 2] as const;
 
-export function WalkPreviewDialog({ document, onClose }: { document: PixelDocument; onClose: () => void }) {
+export function WalkPreviewDialog({ document, background, onClose }: { document: PixelDocument; background: CanvasBackground; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [step, setStep] = useState(0);
@@ -33,7 +34,7 @@ export function WalkPreviewDialog({ document, onClose }: { document: PixelDocume
 
   return <dialog ref={dialog} className="walk-preview-dialog" aria-labelledby="walk-preview-title" onCancel={(event) => { event.preventDefault(); onClose(); }}>
     <h2 id="walk-preview-title">{direction}の歩行プレビュー</h2>
-    <div className="walk-preview-stage"><canvas ref={canvas} width={document.width} height={document.height} aria-label={`${direction}の歩行アニメーション`} /></div>
+    <div className="walk-preview-stage" style={background.mode === 'solid' ? { backgroundImage: 'none', backgroundColor: background.color } : undefined}><canvas ref={canvas} width={document.width} height={document.height} aria-label={`${direction}の歩行アニメーション`} /></div>
     <p><output aria-label="再生中のポーズ">{POSES[pose]}</output> · {document.width} × {document.height} px</p>
     <label className="walk-preview-speed">再生速度<select aria-label="再生速度" value={fps} onChange={(event) => setFps(Number(event.target.value))}>{[2, 4, 6, 8, 10, 12].map(value => <option key={value} value={value}>{value} コマ/秒</option>)}</select></label>
     <p className="hint">直立 → 左足 → 直立 → 右足を繰り返します。まだ描いていないコマは透明で表示されます。</p>

@@ -27,6 +27,8 @@ import { encodePng } from './io/png';
 import { usePalette } from './io/usePalette';
 import { useGitHubSync } from './io/useGitHubSync';
 import { GitHubSyncDialog } from './components/GitHubSyncDialog';
+import { BackgroundDialog } from './components/BackgroundDialog';
+import { useCanvasBackground } from './io/useCanvasBackground';
 
 const PALETTE = [
   { hex: '#000000', name: '黒' }, { hex: '#f6f4ee', name: 'ミルク' },
@@ -61,17 +63,19 @@ export default function App() {
     return () => media.removeEventListener('change', change);
   }, []);
   const palette = usePalette();
+  const { background, update: setBackground, warning: backgroundWarning } = useCanvasBackground();
   const [zoom, setZoom] = useState(1);
   const [newCanvas, setNewCanvas] = useState(false);
   const [png, setPng] = useState<Blob | null>(null);
   const [exporting, setExporting] = useState(false);
   const [walkPreview, setWalkPreview] = useState(false);
   const [guidesOpen, setGuidesOpen] = useState(false);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
   const [error, setError] = useState('');
   const [syncOpen, setSyncOpen] = useState(false);
   const autosave = useAutosave(state, dispatch);
   const drawing = state.stroke !== null || state.floating !== null;
-  const canSync = autosave.ready && !autosave.busy && !autosave.failed && palette.ready && !palette.busy && !drawing && !canvasInteraction && !deleting && !newCanvas && !walkPreview && !guidesOpen && !brushPopup && !png && !exporting && screen !== 'character';
+  const canSync = autosave.ready && !autosave.busy && !autosave.failed && palette.ready && !palette.busy && !drawing && !canvasInteraction && !deleting && !newCanvas && !walkPreview && !guidesOpen && !backgroundOpen && !brushPopup && !png && !exporting && screen !== 'character';
   const github = useGitHubSync({ enabled: canSync, automatic: screen === 'menu' || screen === 'library', paused: syncOpen, execute: async (operation) => {
     const result = await autosave.synchronize(operation);
     await palette.reload();
@@ -147,11 +151,11 @@ export default function App() {
             <FrameControls state={state} disabled={locked} dispatch={dispatch} onPlay={() => setWalkPreview(true)} metadata={<> <strong>{width} × {height} px</strong><button className={`grid-button ${grid ? 'active' : ''}`} aria-label="グリッド設定" aria-haspopup="dialog" aria-expanded={guidesOpen} disabled={locked} onClick={() => setGuidesOpen(true)}><Icon name="grid" size={15} />グリッド<span className="grid-state">{grid ? 'ON' : 'OFF'}</span></button> </>} />
             <div className={`canvas-drawing-row ${mobileTools ? 'mobile-drawing-row' : ''}`}>
               {!mobileTools && <BrushControls tool={tool} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} disabled={locked} />}
-            <PixelCanvas state={state} document={state.document} color={tool === 'eraser' || paintColor[3] === 0 ? TRANSPARENT : paintColor} gridMode={gridMode} centerMode={centerMode} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
+            <PixelCanvas state={state} document={state.document} color={tool === 'eraser' || paintColor[3] === 0 ? TRANSPARENT : paintColor} gridMode={gridMode} centerMode={centerMode} background={background} brushSize={brushSize} tool={tool} zoom={zoom} onZoom={setZoom} onInteraction={setCanvasInteraction} disabled={!autosave.ready || autosave.busy} dispatch={dispatch}
               onPick={(sampled) => { if (sampled[3] === 0) setTool('eraser'); else { setColor(colorToPaintHex(sampled)); setTool('pen'); } }} />
               {!mobileTools && quickTools}
             </div>
-            <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><RecentColors colors={state.recentColors} color={color} disabled={locked} onSelect={selectColor} /><div><button aria-label="縮小" disabled={zoom <= MIN_ZOOM || locked} onClick={() => setZoom(Math.max(MIN_ZOOM, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(3))}倍</output><button aria-label="拡大" disabled={zoom >= MAX_ZOOM || locked} onClick={() => setZoom(Math.min(MAX_ZOOM, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
+            <div className="view-controls"><span>{TOOLS.find((item) => item.tool === tool)?.label}</span><RecentColors colors={state.recentColors} color={color} disabled={locked} onSelect={selectColor} /><div className="zoom-controls"><button aria-label="背景設定" aria-haspopup="dialog" aria-expanded={backgroundOpen} disabled={locked} onClick={() => setBackgroundOpen(true)}><span className={`background-swatch ${background.mode === 'checker' ? 'checker-background' : ''}`} style={background.mode === 'solid' ? { backgroundColor: background.color } : undefined} aria-hidden="true" />背景</button><button aria-label="縮小" disabled={zoom <= MIN_ZOOM || locked} onClick={() => setZoom(Math.max(MIN_ZOOM, zoom / 2))}>−</button><output aria-label="拡大率">{Number(zoom.toFixed(3))}倍</output><button aria-label="拡大" disabled={zoom >= MAX_ZOOM || locked} onClick={() => setZoom(Math.min(MAX_ZOOM, zoom * 2))}>＋</button><button disabled={locked} onClick={() => setZoom(1)}>全体表示</button></div></div>
           </div>
           <aside className="tool-panel" aria-label="描画ツール">
             <section className="tools-section" aria-labelledby="tools-heading">
@@ -173,7 +177,7 @@ export default function App() {
         {github.config && <button disabled={!canSync || github.busy} onClick={() => { void github.run(); }}>{github.busy ? '同期中…' : '今すぐ同期'}</button>}
         <p role="status" className={github.failed ? 'error' : ''}>{github.config ? github.busy || github.failed ? github.message : github.pending ? screen === 'editor' ? '端末に保存済み・一覧に戻るとGitHubに同期します' : '端末に保存済み・GitHubは同期待ち' : github.message : 'GitHub保存は未設定です'}</p>
       </section>
-      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !github.busy && !syncOpen && !walkPreview && !guidesOpen && !brushPopup} />
+      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !github.busy && !syncOpen && !walkPreview && !guidesOpen && !backgroundOpen && !brushPopup} />
     </main>
     {syncOpen && <GitHubSyncDialog config={github.config} busy={github.busy} message={github.message} failed={github.failed} onConfigure={github.configure} onDisconnect={github.disconnect} onClose={() => setSyncOpen(false)} />}
     {deleting && <DeleteProjectDialog name={deleting.name} disabled={autosave.busy} onClose={() => setDeleting(null)} onDelete={() => autosave.remove(deleting.id)} />}
@@ -183,7 +187,8 @@ export default function App() {
     }} />}
     {brushPopup && <BrushSizeDialog tool={brushPopup} penSize={penSize} eraserSize={eraserSize} onPenSize={setPenSize} onEraserSize={setEraserSize} onClose={() => setBrushPopup(null)} />}
     {guidesOpen && <GuideDialog gridMode={gridMode} centerMode={centerMode} onCenter={setCenterMode} onGrid={(mode) => { setGrid(mode !== 'off'); if (mode !== 'off') setGridDirection(mode); }} onClose={() => setGuidesOpen(false)} />}
-    {walkPreview && state.document.frames && <WalkPreviewDialog document={state.document} onClose={() => setWalkPreview(false)} />}
+    {backgroundOpen && <BackgroundDialog background={background} warning={backgroundWarning} onChange={setBackground} onClose={() => setBackgroundOpen(false)} />}
+    {walkPreview && state.document.frames && <WalkPreviewDialog document={state.document} background={background} onClose={() => setWalkPreview(false)} />}
     {png && <ExportDialog blob={png} filename={`pixel-studio-${width * (state.document.frames ? 3 : 1)}x${height * (state.document.frames ? 4 : 1)}.png`} onClose={() => setPng(null)} />}
   </div>;
 }

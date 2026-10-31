@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type PointerEvent as ReactPointerEvent } from 'react';
-import { MIN_ZOOM, MAX_ZOOM } from '../model/view';
+import { MIN_ZOOM, MAX_ZOOM, type CanvasBackground } from '../model/view';
 import type { Color, PixelDocument, Point, Tool } from '../model/document';
 import type { EditorAction, EditorState } from '../model/editor';
 import { clientToPixel } from '../drawing/stroke';
@@ -14,6 +14,7 @@ interface Props {
   color: Color;
   gridMode: GuideMode;
   centerMode: GuideMode;
+  background: CanvasBackground;
   brushSize: number;
   tool: Tool;
   zoom: number;
@@ -29,7 +30,7 @@ type Gesture = { zoom: number; distance: number; anchor: Point };
 const midpoint = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 const distance = (a: Point, b: Point) => Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
 
-export function PixelCanvas({ state, document, color, gridMode, centerMode, brushSize, tool, zoom, onZoom, onInteraction, disabled, onPick, dispatch }: Props) {
+export function PixelCanvas({ state, document, color, gridMode, centerMode, background, brushSize, tool, zoom, onZoom, onInteraction, disabled, onPick, dispatch }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const activePointer = useRef<Pointer | null>(null);
@@ -204,7 +205,7 @@ export function PixelCanvas({ state, document, color, gridMode, centerMode, brus
     }} onPointerLeave={() => setHover(null)}
     onPointerDown={down} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end}>
     <div className="canvas-stage" style={{ width: width + 24, height: height + 24 }}>
-      <div className={`canvas-frame ${tool === 'eraser' ? 'is-erasing' : ''}`} style={{ width, height, aspectRatio: 'auto', backgroundSize: `${Math.max(8, cellSize * 4)}px ${Math.max(8, cellSize * 4)}px` }}>
+      <div className={`canvas-frame ${tool === 'eraser' ? 'is-erasing' : ''}`} style={{ width, height, aspectRatio: 'auto', backgroundSize: `${Math.max(8, cellSize * 4)}px ${Math.max(8, cellSize * 4)}px`, ...(background.mode === 'solid' ? { backgroundImage: 'none', backgroundColor: background.color } : {}) }}>
         <canvas ref={canvasRef} width={document.width} height={document.height}
           aria-label={`${document.width}×${document.height}の描画キャンバス。指またはマウスで描画できます`}>Canvasに対応したブラウザで開いてください。</canvas>
         <svg className="canvas-grid" viewBox={`0 0 ${document.width} ${document.height}`} aria-hidden="true">

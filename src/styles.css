@@ -199,6 +199,16 @@ button:not(:disabled):hover,.action:hover {
   -webkit-touch-callout:none;
 }
 
+.background-dialog { width:min(400px, calc(100% - 32px)); }
+.background-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.background-options button[aria-pressed="true"] { background:#f5d790; border-color:#b89647; }
+.background-swatch { display:inline-block; flex-shrink:0; width:20px; height:20px; border:1px solid #929a87; border-radius:3px; }
+.checker-background { background:conic-gradient(#e3e1da 25%,#faf9f4 0 50%,#e3e1da 0 75%,#faf9f4 0) 0 0 / 12px 12px; }
+.background-color-field { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:16px; font-size:13px; }
+.background-color-field input { width:64px; height:44px; padding:3px; border:1px solid #cdd2c0; border-radius:6px; background:#fbfaf6; }
+.background-color-field output { font:12px ui-monospace,monospace; }
+.view-controls .zoom-controls { flex-wrap:wrap; justify-content:flex-end; }
+
 .tool-pan,.tool-pan canvas {
   cursor:grab;
 }
