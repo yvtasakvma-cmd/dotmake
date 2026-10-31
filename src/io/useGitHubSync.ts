@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { loadGitHubConfig, storeGitHubConfig, synchronizeGitHub, type GitHubConfig } from './githubSync';
 import { STORAGE_CHANGED } from './storage';
 
-export function useGitHubSync({ enabled, paused, execute }: {
-  enabled: boolean; paused: boolean;
+export function useGitHubSync({ enabled, automatic, paused, execute }: {
+  enabled: boolean; automatic: boolean; paused: boolean;
   execute: (operation: () => ReturnType<typeof synchronizeGitHub>) => ReturnType<typeof synchronizeGitHub>;
 }) {
   const [config, setConfig] = useState(loadGitHubConfig);
@@ -32,8 +32,12 @@ export function useGitHubSync({ enabled, paused, execute }: {
       return false;
     } finally { running.current = false; setBusy(false); }
   };
-  const latest = useRef({ enabled, paused, run });
-  latest.current = { enabled, paused, run };
+  const latest = useRef({ enabled, automatic, paused, run });
+  latest.current = { enabled, automatic, paused, run };
+
+  // Returning to the library is a safe opportunity to exchange artwork. Never
+  // let a timer or a focus/online event interrupt the editing screen.
+  useEffect(() => { if (automatic) pollAt.current = 0; }, [automatic]);
 
   useEffect(() => {
     dirty.current = true; blocked.current = false; pollAt.current = 0; setPending(true);
@@ -42,7 +46,7 @@ export function useGitHubSync({ enabled, paused, execute }: {
     const wake = () => { pollAt.current = 0; blocked.current = false; };
     const tick = () => {
       const current = latest.current;
-      if (!current.enabled || current.paused || running.current || blocked.current || document.visibilityState !== 'visible' || !navigator.onLine) return;
+      if (!current.automatic || !current.enabled || current.paused || running.current || blocked.current || document.visibilityState !== 'visible' || !navigator.onLine) return;
       if (Date.now() >= pollAt.current || (dirty.current && Date.now() - dirtyAt.current >= 15000)) void current.run(config);
     };
     const timer = window.setInterval(tick, 1000);

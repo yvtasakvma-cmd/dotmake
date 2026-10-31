@@ -31,7 +31,7 @@ export function GitHubSyncDialog({ config, busy, message, failed, onConfigure, o
       <label>アクセストークン<input type="password" autoComplete="new-password" autoCapitalize="none" spellCheck={false} required value={token} disabled={busy} onChange={(e) => setToken(e.target.value)} /></label>
       <label className="github-remember"><input type="checkbox" checked={remember} disabled={busy} onChange={(e) => setRemember(e.target.checked)} />この端末にトークンを保存する</label>
       <p className="palette-hint">チェックしない場合は、このタブを閉じると再入力が必要です。保存した場合も、トークンはこのブラウザ内だけに保持します。</p>
-      <p className="palette-hint">変更後は操作が落ち着いてから約15秒で同期し、起動時・アプリに戻った時・オンライン復帰時にも確認します。端末を切り替える前は「今すぐ同期」で完了を確認してください。端末内保存はオフラインでも続きます。</p>
+      <p className="palette-hint">編集画面では自動同期しません。一覧・メニューに戻ると同期します。編集画面から送る場合や、端末を切り替える前は「今すぐ同期」で完了を確認してください。端末内への自動保存は続きます。</p>
       {(error || message) && <p className={error || failed ? 'error' : ''} role={error || failed ? 'alert' : 'status'}>{error || message}</p>}
       <div className="dialog-actions"><button type="submit" className="primary" disabled={busy}>{busy ? '同期中…' : '接続して同期'}</button>{config && <button type="button" disabled={busy} onClick={() => { onDisconnect(); setToken(''); }}>接続を解除</button>}<button type="button" disabled={busy} onClick={onClose}>閉じる</button></div>
     </form>

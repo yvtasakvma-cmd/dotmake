@@ -3,13 +3,14 @@ import { enterEditor, enterLibrary } from './navigation';
 
 const fakeToken = 'github_pat_fake_browser_test_token';
 function gitHubServer() {
-  const state = { text: null as string | null, revision: 0, commits: 0, status: 0, private: true, hold: false, waiting: false, conflictOnce: false, networkDown: false };
+  const state = { text: null as string | null, revision: 0, commits: 0, requests: 0, status: 0, private: true, hold: false, waiting: false, conflictOnce: false, networkDown: false };
   const sha = () => state.revision.toString(16).padStart(40, '0');
   const install = async (context: BrowserContext) => context.route('https://api.github.com/**', async (route) => {
     const request = route.request();
     const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET,PUT,OPTIONS' };
     const reply = (value: unknown, status = 200) => route.fulfill({ status, headers, json: value });
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    state.requests++;
     expect(request.headers().authorization).toBe(`Bearer ${fakeToken}`);
     if (state.networkDown) return route.abort('internetdisconnected');
     if (state.status) return reply({}, state.status);
@@ -125,6 +126,7 @@ test('keeps local work through rejected credentials, corrupt remote data and a c
   expect(await pixel(page, 3, 3)).toEqual([0, 0, 0, 255]);
   server.state.networkDown = false;
   await page.context().setOffline(false);
+  await sync(page);
   await expect(page.locator('.github-sync-bar')).toContainText('GitHubに同期済み');
   const stored = JSON.parse(server.state.text!);
   expect(Buffer.from(stored.projects[0].frames[1], 'base64')[(3 * 32 + 3) * 4 + 3]).toBe(255);
@@ -188,12 +190,40 @@ test('does not overwrite a local save made in another tab while GitHub is writin
   expect(await pixel(page, 6, 6)).toEqual([0, 0, 0, 255]);
 });
 
-test('automatically syncs idle edits and resumes from a remembered configuration', async ({ page }) => {
+test('keeps the editor uninterrupted across timer and wake events, syncs on return to the library, and restores settings', async ({ page }) => {
   const server = gitHubServer(); await server.install(page.context());
+  await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
   await page.goto('.'); await enterEditor(page); await connected(page, true);
+  const requests = server.state.requests;
+  await paint(page, 7, 7);
+  await page.clock.runFor(61000);
+  expect(server.state.requests).toBe(requests);
+  await expect(page.getByRole('button', { name: 'ペン', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '元に戻す', exact: true }).click();
+  expect(await pixel(page, 7, 7)).toEqual([0, 0, 0, 0]);
   await paint(page, 8, 8);
-  await expect.poll(() => server.state.commits, { timeout: 22000 }).toBe(2);
+  await page.clock.runFor(61000);
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('online'));
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.clock.runFor(2000);
+  expect(server.state.requests).toBe(requests);
+  expect(server.state.commits).toBe(1);
+  await expect(page.locator('.github-sync-bar')).toContainText('一覧に戻ると');
+  expect(await pixel(page, 8, 8)).toEqual([0, 0, 0, 255]);
+  await page.getByRole('button', { name: 'キャラクター一覧へ戻る', exact: true }).click();
+  await page.clock.runFor(1000);
+  await expect(page.locator('.github-sync-bar')).toContainText('GitHubに同期済み');
+  expect(server.state.commits).toBe(2);
+  const snapshot = JSON.parse(server.state.text!);
+  const pixels = Buffer.from(snapshot.projects[0].frames[1], 'base64');
+  expect(pixels[(7 * 32 + 7) * 4 + 3]).toBe(0);
+  expect(pixels[(8 * 32 + 8) * 4 + 3]).toBe(255);
   await page.reload(); await enterLibrary(page);
+  await page.clock.runFor(1000);
   await expect(page.locator('.github-sync-bar')).toContainText('GitHubに同期済み');
   expect(server.state.commits).toBe(2); // No commit for an unchanged library.
 });

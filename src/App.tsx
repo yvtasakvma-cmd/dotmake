@@ -72,7 +72,7 @@ export default function App() {
   const autosave = useAutosave(state, dispatch);
   const drawing = state.stroke !== null || state.floating !== null;
   const canSync = autosave.ready && !autosave.busy && !autosave.failed && palette.ready && !palette.busy && !drawing && !canvasInteraction && !deleting && !newCanvas && !walkPreview && !guidesOpen && !brushPopup && !png && !exporting && screen !== 'character';
-  const github = useGitHubSync({ enabled: canSync, paused: syncOpen, execute: async (operation) => {
+  const github = useGitHubSync({ enabled: canSync, automatic: screen === 'menu' || screen === 'library', paused: syncOpen, execute: async (operation) => {
     const result = await autosave.synchronize(operation);
     await palette.reload();
     return result;
@@ -171,7 +171,7 @@ export default function App() {
       <section className="github-sync-bar" aria-label="GitHub保存">
         <button disabled={!canSync || github.busy} onClick={() => setSyncOpen(true)}>GitHub保存の設定</button>
         {github.config && <button disabled={!canSync || github.busy} onClick={() => { void github.run(); }}>{github.busy ? '同期中…' : '今すぐ同期'}</button>}
-        <p role="status" className={github.failed ? 'error' : ''}>{github.config ? github.busy || github.failed ? github.message : github.pending ? '端末に保存済み・GitHubは同期待ち' : github.message : 'GitHub保存は未設定です'}</p>
+        <p role="status" className={github.failed ? 'error' : ''}>{github.config ? github.busy || github.failed ? github.message : github.pending ? screen === 'editor' ? '端末に保存済み・一覧に戻るとGitHubに同期します' : '端末に保存済み・GitHubは同期待ち' : github.message : 'GitHub保存は未設定です'}</p>
       </section>
       <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !github.busy && !syncOpen && !walkPreview && !guidesOpen && !brushPopup} />
     </main>
