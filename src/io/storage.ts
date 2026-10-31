@@ -179,6 +179,38 @@ export async function saveProject(id: string, document: PixelDocument): Promise<
   });
   return summary(record);
 }
+
+// Change metadata in one transaction without writing a stale copy of the art.
+export async function renameProject(id: string, value: string): Promise<{ project: ProjectSummary; document: PixelDocument }> {
+  const name = value.trim();
+  if (!name || name.length > 40) throw new Error('名前は1〜40文字で入力してください。');
+  const db = await open();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['projects', 'documents'], 'readwrite');
+    const projects = tx.objectStore('projects');
+    const request = projects.get(id);
+    let result: { project: ProjectSummary; document: PixelDocument };
+    let failure: unknown;
+    let changed = false;
+    tx.oncomplete = () => { if (changed) notifyChange(); resolve(result); };
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(failure || tx.error);
+    request.onsuccess = () => {
+      try {
+        const record = request.result as StoredProject;
+        const document = { ...decode(record), name };
+        const next = { ...record, name, updatedAt: record.name === name ? record.updatedAt : Date.now() };
+        result = { document, project: summary({ ...next, ...document }) };
+        if (record.name !== name) {
+          projects.put(next);
+          bumpRevision(tx.objectStore('documents'));
+          changed = true;
+        }
+      } catch (error) { failure = error; tx.abort(); }
+    };
+  });
+}
+
 export async function loadPalette(): Promise<string[]> {
   const db = await open();
   const value = await new Promise<unknown>((resolve, reject) => {

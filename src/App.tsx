@@ -29,6 +29,7 @@ import { useGitHubSync } from './io/useGitHubSync';
 import { GitHubSyncDialog } from './components/GitHubSyncDialog';
 import { BackgroundDialog } from './components/BackgroundDialog';
 import { useCanvasBackground } from './io/useCanvasBackground';
+import { RenameProjectDialog } from './components/RenameProjectDialog';
 
 const PALETTE = [
   { hex: '#000000', name: '黒' }, { hex: '#f6f4ee', name: 'ミルク' },
@@ -47,6 +48,7 @@ export default function App() {
   const [canvasInteraction, setCanvasInteraction] = useState(false);
   const [screen, setScreen] = useState<'menu' | 'library' | 'character' | 'editor'>('menu');
   const [deleting, setDeleting] = useState<ProjectSummary | null>(null);
+  const [renaming, setRenaming] = useState<ProjectSummary | null>(null);
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState(PALETTE[0].hex);
   const [guidesVisible, setGuidesVisible] = useState(true);
@@ -75,7 +77,7 @@ export default function App() {
   const [syncOpen, setSyncOpen] = useState(false);
   const autosave = useAutosave(state, dispatch);
   const drawing = state.stroke !== null || state.floating !== null;
-  const canSync = autosave.ready && !autosave.busy && !autosave.failed && palette.ready && !palette.busy && !drawing && !canvasInteraction && !deleting && !newCanvas && !walkPreview && !guidesOpen && !backgroundOpen && !brushPopup && !png && !exporting && screen !== 'character';
+  const canSync = autosave.ready && !autosave.busy && !autosave.failed && palette.ready && !palette.busy && !drawing && !canvasInteraction && !deleting && !renaming && !newCanvas && !walkPreview && !guidesOpen && !backgroundOpen && !brushPopup && !png && !exporting && screen !== 'character';
   const github = useGitHubSync({ enabled: canSync, automatic: screen === 'menu' || screen === 'library', paused: syncOpen, execute: async (operation) => {
     const result = await autosave.synchronize(operation);
     await palette.reload();
@@ -123,7 +125,7 @@ export default function App() {
     <main aria-label="Pixel Studio">
       {screen === 'menu' && <StartMenu ready={autosave.ready && !autosave.busy && !github.busy} onCharacter={() => setScreen('library')} />}
       {screen === 'library' && <CharacterLibrary ready={autosave.ready && !autosave.busy && !github.busy} projects={autosave.projects} activeId={autosave.activeId} clipboardName={autosave.clipboard?.name} message={autosave.libraryMessage}
-        onBack={() => setScreen('menu')} onNew={() => setScreen('character')} onOpen={openEditor} onCopy={(id) => { void autosave.copy(id); }} onDelete={setDeleting}
+        onBack={() => setScreen('menu')} onNew={() => setScreen('character')} onOpen={openEditor} onCopy={(id) => { void autosave.copy(id); }} onDelete={setDeleting} onRename={setRenaming}
         onPaste={() => { void autosave.paste().then((created) => { if (created) { setCenterMode('vertical'); setZoom(1); setTool('pen'); setScreen('editor'); setError(''); } }); }} />}
       {screen === 'character' && <CharacterSetup disabled={autosave.busy || github.busy} onBack={() => setScreen('library')} onCreate={(name, w, h) => {
         try {
@@ -176,10 +178,11 @@ export default function App() {
         {github.config && <button disabled={!canSync || github.busy} onClick={() => { void github.run(); }}>{github.busy ? '同期中…' : '今すぐ同期'}</button>}
         <p role="status" className={github.failed ? 'error' : ''}>{github.config ? github.busy || github.failed ? github.message : github.pending ? screen === 'editor' ? '端末に保存済み・一覧に戻るとGitHubに同期します' : '端末に保存済み・GitHubは同期待ち' : github.message : 'GitHub保存は未設定です'}</p>
       </section>
-      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !github.busy && !syncOpen && !walkPreview && !guidesOpen && !backgroundOpen && !brushPopup} />
+      <PwaStatus canUpdate={(!autosave.hasProject || autosave.status === 'この端末に保存済み') && !drawing && !palette.busy && !autosave.busy && !github.busy && !syncOpen && !renaming && !walkPreview && !guidesOpen && !backgroundOpen && !brushPopup} />
     </main>
     {syncOpen && <GitHubSyncDialog config={github.config} busy={github.busy} message={github.message} failed={github.failed} onConfigure={github.configure} onDisconnect={github.disconnect} onClose={() => setSyncOpen(false)} />}
     {deleting && <DeleteProjectDialog name={deleting.name} disabled={autosave.busy} onClose={() => setDeleting(null)} onDelete={() => autosave.remove(deleting.id)} />}
+    {renaming && <RenameProjectDialog name={renaming.name} disabled={autosave.busy} onClose={() => setRenaming(null)} onRename={(name) => autosave.rename(renaming.id, name)} />}
     {newCanvas && <NewCanvasDialog disabled={autosave.busy} onClose={() => setNewCanvas(false)} onCreate={(w, h, name) => {
       try { void autosave.create(createCharacter(w, h, name)).then((created) => { if (created) { setTool('pen'); setCenterMode('vertical'); setZoom(1); setNewCanvas(false); setError(''); } }); }
       catch { setError('幅・高さは1〜256の整数で指定してください。'); }

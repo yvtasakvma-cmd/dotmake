@@ -29,6 +29,7 @@ export type EditorAction =
   | { type: 'cancel-region' }
   | { type: 'cancel-stroke' }
   | { type: 'replace'; document: PixelDocument }
+  | { type: 'rename'; document: PixelDocument }
   | { type: 'fill'; point: Point; color: Color }
   | { type: 'begin'; point: Point; color: Color; brushSize?: number }
   | { type: 'move'; point: Point }
@@ -101,6 +102,12 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'replace':
       if (state.stroke || state.floating) return state;
       return { ...state, document: action.document, past: [], future: [], stroke: null, selection: null, floating: null };
+    case 'rename':
+      if (state.stroke || state.floating) return state;
+      return { ...state, document: action.document,
+        past: state.past.map((document) => ({ ...document, name: action.document.name })),
+        future: state.future.map((document) => ({ ...document, name: action.document.name })),
+      };
     case 'fill': {
       if (state.stroke || state.floating) return state;
       const document = floodFill(state.document, action.point, action.color);

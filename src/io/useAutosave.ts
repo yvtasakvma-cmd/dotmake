@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch } from 'react';
 import type { EditorAction, EditorState } from '../model/editor';
 import { copiedCharacter, createDocument, type PixelDocument } from '../model/document';
-import { deleteProject, loadLibrary, loadProject, saveProject, saveProjectClipboard, type ProjectSummary } from './storage';
+import { deleteProject, loadLibrary, loadProject, renameProject, saveProject, saveProjectClipboard, type ProjectSummary } from './storage';
 import { encodeProject, sameProject } from './syncSnapshot';
 
 export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>) {
@@ -134,6 +134,24 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
   };
   const paste = () => clipboard ? create(copiedCharacter(clipboard)) : Promise.resolve(false);
 
+  const rename = async (id: string, value: string) => {
+    if (!ready || switching.current || state.stroke || state.floating) return false;
+    switching.current = true; setBusy(true); setLibraryMessage('');
+    try {
+      if (!await flush()) return false;
+      const { project, document } = await renameProject(id, value);
+      if (activeRef.current === id) {
+        const unchangedArt = sameProject(encodeProject({ ...documentRef.current, name: document.name, id, updatedAt: 0 }), encodeProject({ ...document, id, updatedAt: 0 }));
+        saved.current = { id, document }; documentRef.current = document;
+        dispatch({ type: unchangedArt ? 'rename' : 'replace', document });
+        setStatus('この端末に保存済み'); setFailed(false);
+      }
+      remember(project); setLibraryMessage('名前を変更しました。');
+      return true;
+    } catch { setLibraryMessage('名前を変更できませんでした。元の名前と作品は保持しています。'); return false; }
+    finally { switching.current = false; setBusy(false); }
+  };
+
   const synchronize = async <T,>(operation: () => Promise<T>): Promise<T> => {
     if (!ready || switching.current || state.stroke || state.floating) throw new Error('編集中の操作が終わってから同期してください。');
     switching.current = true; setBusy(true);
@@ -174,5 +192,5 @@ export function useAutosave(state: EditorState, dispatch: Dispatch<EditorAction>
     return () => window.removeEventListener('beforeunload', warn);
   }, [activeId, currentStatus]);
 
-  return { ready, busy, status: currentStatus, failed, warning, projects, activeId, hasProject: activeId !== null, open, create, copy, remove, paste, synchronize, clipboard, libraryMessage };
+  return { ready, busy, status: currentStatus, failed, warning, projects, activeId, hasProject: activeId !== null, open, create, copy, remove, paste, rename, synchronize, clipboard, libraryMessage };
 }

@@ -8,6 +8,27 @@ function tap(state: EditorState, x = 1, color = ink) {
 }
 
 describe('stroke history', () => {
+  it('keeps the new name through drawing undo and redo without changing pixels or history length', () => {
+    let state = createEditor();
+    state = { ...state, document: { ...state.document, name: '元の名前' } };
+    state = tap(tap(state, 1), 2);
+    state = editorReducer(state, { type: 'undo' });
+    const before = state;
+    state = editorReducer(state, { type: 'rename', document: { ...state.document, name: '新しい名前' } });
+    expect(state.document.pixels).toBe(before.document.pixels);
+    expect(state.past).toHaveLength(1); expect(state.future).toHaveLength(1);
+    expect(before.document.name).toBe('元の名前');
+    state = editorReducer(state, { type: 'undo' });
+    expect(state.document.name).toBe('新しい名前');
+    expect(state.document.pixels).toBe(before.past[0].pixels);
+    state = editorReducer(state, { type: 'redo' });
+    expect(state.document.name).toBe('新しい名前');
+    expect(state.document.pixels).toBe(before.document.pixels);
+    state = editorReducer(state, { type: 'redo' });
+    expect(state.document.name).toBe('新しい名前');
+    expect(state.document.pixels).toBe(before.future[0].pixels);
+  });
+
   it('undoes and redoes an entire multi-event stroke as one operation', () => {
     const empty = createEditor();
     let state = editorReducer(empty, { type: 'begin', point: { x: 0, y: 0 }, color: ink });

@@ -79,6 +79,15 @@ test('shares twelve-frame RGBA artwork and palette across devices, resolves two 
     expect(await pixel(peer, 3, 3)).toEqual([255, 0, 0, 128]);
     await expect(peer.getByRole('button', { name: '追加色 #ff000080', exact: true })).toBeVisible();
     expect(JSON.parse(server.state.text!).projects[0].frames).toHaveLength(12);
+    await page.getByRole('button', { name: 'キャラクター一覧へ戻る', exact: true }).click();
+    await page.getByRole('button', { name: '新しいキャラクターの名前を変更', exact: true }).click();
+    await page.getByRole('dialog').getByLabel('キャラクター名', { exact: true }).fill('共有する主人公');
+    await page.getByRole('dialog').getByRole('button', { name: '変更を保存', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await sync(page); await sync(peer);
+    expect(JSON.parse(server.state.text!).projects[0].name).toBe('共有する主人公');
+    await expect(peer.getByRole('heading', { name: '共有する主人公', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: '共有する主人公を開く', exact: true }).click();
     // Both devices edit from the same base before either sees the other edit.
     await paint(page, 4, 4);
     await paint(peer, 5, 5);
