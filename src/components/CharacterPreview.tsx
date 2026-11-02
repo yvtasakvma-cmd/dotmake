@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { DIRECTIONS } from '../model/document';
 import { DEFAULT_WALK_FPS, WALK_CYCLE } from '../model/animation';
 import { loadProjectPreview } from '../io/projectPreview';
 import type { ProjectSummary } from '../io/storage';
 
 export function CharacterPreview({ project }: { project: ProjectSummary }) {
-  const figure = useRef<HTMLElement>(null);
+  const figure = useRef<HTMLDivElement>(null);
   const loaded = useRef<ProjectSummary | null>(null);
   const [visible, setVisible] = useState(false);
   const [pageVisible, setPageVisible] = useState(() => !document.hidden);
-  const [sources, setSources] = useState<string[] | null>(null);
+  const [sources, setSources] = useState<string[][] | null>(null);
   const [failed, setFailed] = useState(false);
   const [step, setStep] = useState(0);
 
@@ -41,17 +42,23 @@ export function CharacterPreview({ project }: { project: ProjectSummary }) {
   }, [visible]);
 
   useEffect(() => {
-    if (!visible || !pageVisible || sources?.length !== 3) return;
+    if (!visible || !pageVisible || !sources?.some((row) => row.length === 3)) return;
     const timer = window.setInterval(() => setStep((value) => (value + 1) % WALK_CYCLE.length), 1000 / DEFAULT_WALK_FPS);
     return () => clearInterval(timer);
-  }, [visible, pageVisible, sources?.length]);
+  }, [visible, pageVisible, sources]);
 
-  const source = sources?.length === 3 ? sources[WALK_CYCLE[step]] : sources?.[0];
-  return <figure ref={figure} className="character-preview">
-    <div className="character-preview-image">{source
-      ? <img src={source} alt={`${project.name}の${project.kind === 'character' ? '正面歩行' : '画像'}プレビュー`} width={64} height={64} />
-      : <span>{failed ? '表示不可' : sources ? '未描画' : '読込中…'}</span>}
-    </div>
-    <figcaption>{project.kind === 'character' ? '正面' : '画像'}</figcaption>
-  </figure>;
+  const labels = project.kind === 'character' ? DIRECTIONS : ['画像'];
+  return <div ref={figure} className="character-previews" aria-label={`${project.name}のプレビュー`}>
+    {labels.map((label, direction) => {
+      const row = sources?.[direction];
+      const source = row?.length === 3 ? row[WALK_CYCLE[step]] : row?.[0];
+      return <figure key={label} className="character-preview">
+        <div className="character-preview-image">{source
+          ? <img src={source} alt={`${project.name}の${project.kind === 'character' ? `${label}歩行` : '画像'}プレビュー`} width={64} height={64} />
+          : <span>{failed ? '表示不可' : sources ? '未描画' : '読込中…'}</span>}
+        </div>
+        <figcaption>{label}</figcaption>
+      </figure>;
+    })}
+  </div>;
 }

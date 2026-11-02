@@ -737,21 +737,22 @@ select:focus-visible {
 
 .setup-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 .project-list { list-style: none; margin: 18px 0; padding: 0; display: grid; gap: 12px; }
-.project-list article { border: 1px solid var(--line); border-radius: 9px; padding: 16px; background: #fbfaf6; }
+.project-list article { border: 1px solid var(--line); border-radius: 9px; padding: 16px; background: #fbfaf6; container-type: inline-size; }
 .project-list h3 { font-size: 16px; margin: 0 0 8px; overflow-wrap: anywhere; }
 .project-list p { font-size: 12px; margin: 8px 0; }
 .project-list time { display: block; font-size: 11px; color: #647057; margin-bottom: 12px; }
-.project-card-header { display:grid; grid-template-columns:minmax(0,1fr) 80px; align-items:start; gap:12px; margin-bottom:12px; }
+.project-card-header { display:grid; grid-template-columns:minmax(0,1fr) 64px; align-items:start; gap:12px; margin-bottom:12px; }
 .project-card-header > div { min-width:0; }
 .project-card-header time { margin-bottom:0; }
-.character-preview { width:80px; margin:0; }
+.character-previews { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.character-preview { width:64px; margin:0; flex:none; }
 .character-preview-image { width:64px; height:64px; margin:0 auto; display:grid; place-items:center; border-radius:4px; overflow:hidden; box-shadow:0 0 0 1px #cdd2c0; background:conic-gradient(#e3e1da 25%,#faf9f4 0 50%,#e3e1da 0 75%,#faf9f4 0) 0 0/12px 12px; }
 .character-preview-image img { display:block; width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
 .character-preview-image > span { padding:2px; font-size:10px; color:#59634f; text-align:center; }
 .character-preview figcaption { margin-top:2px; font-size:10px; line-height:14px; color:#59634f; text-align:center; }
-@media (max-width:360px) {
-  .project-card-header { grid-template-columns:minmax(0,1fr) 64px; gap:8px; }
-  .character-preview { width:64px; }
+@container (min-width: 480px) {
+  .project-card-header { grid-template-columns:minmax(0,1fr) 280px; }
+  .character-previews { flex-direction:row; }
 }
 
 .character-library { max-width: 600px; margin: 24px auto; }

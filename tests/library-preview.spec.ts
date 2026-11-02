@@ -15,6 +15,9 @@ async function prepare(page: Page, count = 1, emptyLast = false) {
           frames[1].set([0, 255, 0, 128], 4);
           frames[2].set([0, 0, 255, 255], 8);
         }
+        for (let direction = 1; direction < 4; direction++) {
+          for (let pose = 0; pose < 3; pose++) frames[direction * 3 + pose].set([direction * 60, pose * 80, 100, 255], direction * 4);
+        }
         frames[10].set([255, 255, 0, 255], 0);
         tx.objectStore('projects').put({ id: `preview-${i}`, name: `キャラ${i + 1}`, version: 2, kind: 'character', width: 32, height: 32, frameIndex: 10, frames, pixels: frames[10], updatedAt: Date.now() + count - i });
       }
@@ -52,7 +55,7 @@ async function signature(page: Page) {
   }));
 }
 
-test('animates the front row in the card even when the last edited frame is the back, without changing saved artwork', async ({ page }) => {
+test('animates all four direction rows in the card even when the last edited frame is the back, without changing saved artwork', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-31T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-31T00:00:01Z'));
   await prepare(page);
@@ -62,6 +65,12 @@ test('animates the front row in the card even when the last edited frame is the 
   const before = await signature(page);
   await expectPose(image, 1);
   for (const pose of [0, 1, 2, 1]) { await page.clock.runFor(167); await expectPose(image, pose); }
+  for (const pose of [0, 1, 2, 1]) {
+    await page.clock.runFor(167);
+    for (let direction = 1; direction < 4; direction++) {
+      await expect.poll(async () => (await imagePixels(card.locator('img').nth(direction), [[direction, 0]]))?.[0]).toEqual([direction * 60, pose * 80, 100, 255]);
+    }
+  }
   expect(await signature(page)).toEqual(before);
   await card.getByRole('button', { name: 'キャラ1を開く', exact: true }).click();
   await expect(page.getByLabel('編集中のコマ')).toHaveText('後ろ・直立');
@@ -72,51 +81,66 @@ test('loads visible cards lazily and pauses animation outside the viewport and w
   await page.clock.install({ time: new Date('2026-10-31T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-31T00:00:01Z'));
   await prepare(page, 8);
-  const first = page.locator('[data-project-id="preview-0"] .character-preview img');
+  const first = page.locator('[data-project-id="preview-0"] .character-preview img').first();
   const lastCard = page.locator('[data-project-id="preview-7"]');
   await expectPose(first, 1);
   await expect(lastCard.locator('img')).toHaveCount(0);
   await lastCard.scrollIntoViewIfNeeded();
-  const last = lastCard.locator('img'); await expectPose(last, 1);
-  const firstSource = await first.getAttribute('src');
+  const last = lastCard.locator('img').first(); await expectPose(last, 1);
+  const firstSources = await page.locator('[data-project-id="preview-0"] img').evaluateAll((images) => images.map((img) => img.getAttribute('src')));
   await page.clock.runFor(167); await expectPose(last, 0);
-  await expect(first).toHaveAttribute('src', firstSource!);
+  expect(await page.locator('[data-project-id="preview-0"] img').evaluateAll((images) => images.map((img) => img.getAttribute('src')))).toEqual(firstSources);
   await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await expect.poll(() => page.evaluate(() => document.hidden)).toBe(true);
+  const pausedSources = await lastCard.locator('img').evaluateAll((images) => images.map((img) => img.getAttribute('src')));
   await page.clock.runFor(167); await expectPose(last, 0);
+  expect(await lastCard.locator('img').evaluateAll((images) => images.map((img) => img.getAttribute('src')))).toEqual(pausedSources);
   await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: false }); document.dispatchEvent(new Event('visibilitychange')); });
   await expect.poll(() => page.evaluate(() => document.hidden)).toBe(false);
   await page.clock.runFor(167); await expectPose(last, 1);
 });
 
-test('refreshes saved front frames, shows empty fronts honestly, and keeps the thumbnail clear of names and buttons on small screens', async ({ page, isMobile }, testInfo) => {
+test('refreshes saved direction frames, shows empty directions honestly, and keeps the thumbnail clear of names and buttons on small screens', async ({ page, isMobile }, testInfo) => {
   await prepare(page, 2, true);
   const card = page.locator('[data-project-id="preview-0"]');
-  await expect(card.locator('.character-preview img')).toBeVisible();
+  await card.scrollIntoViewIfNeeded();
+  await expect(card.locator('.character-preview img')).toHaveCount(4);
   const empty = page.locator('[data-project-id="preview-1"]');
   await empty.scrollIntoViewIfNeeded();
-  await expect(empty.locator('.character-preview')).toContainText('未描画');
-  await expect(empty.locator('img')).toHaveCount(0);
+  await expect(empty.locator('.character-preview').first()).toContainText('未描画');
+  await expect(empty.locator('img')).toHaveCount(3);
   await card.getByRole('button', { name: 'キャラ1を開く', exact: true }).click();
-  for (const pose of ['左足', '直立', '右足']) {
-    await page.locator('.frame-navigation summary').click();
-    await page.getByRole('button', { name: `正面・${pose}を編集`, exact: true }).click();
-    const canvas = page.locator('canvas'); await canvas.scrollIntoViewIfNeeded();
-    const box = (await canvas.boundingBox())!;
-    await page.mouse.click(box.x + 8.5 * box.width / 32, box.y + 8.5 * box.height / 32);
+  for (const direction of ['正面', '左向き', '右向き', '後ろ']) {
+    for (const pose of ['左足', '直立', '右足']) {
+      await page.locator('.frame-navigation summary').click();
+      await page.getByRole('button', { name: `${direction}・${pose}を編集`, exact: true }).click();
+      const canvas = page.locator('canvas'); await canvas.scrollIntoViewIfNeeded();
+      const box = (await canvas.boundingBox())!;
+      await page.mouse.click(box.x + 8.5 * box.width / 32, box.y + 8.5 * box.height / 32);
+    }
   }
   await expect(page.getByText('この端末に保存済み', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'キャラクター一覧へ戻る', exact: true }).click();
-  const image = card.locator('.character-preview img');
-  await expect.poll(() => imagePixels(image, [[8, 8]])).toEqual([[0, 0, 0, 255]]);
+  await card.scrollIntoViewIfNeeded();
+  await expect(card.locator('.character-preview img')).toHaveCount(4);
+  for (const image of await card.locator('.character-preview img').all()) {
+    await expect.poll(() => imagePixels(image, [[8, 8]])).toEqual([[0, 0, 0, 255]]);
+  }
   await card.getByRole('button', { name: 'キャラ1の名前を変更', exact: true }).click();
   await page.getByLabel('キャラクター名', { exact: true }).fill('村人'.repeat(20));
   await page.getByRole('button', { name: '変更を保存', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   if (isMobile) await page.setViewportSize({ width: 320, height: 740 });
   await card.scrollIntoViewIfNeeded();
-  const thumbnail = (await card.locator('.character-preview').boundingBox())!;
-  const details = (await card.locator('.project-card-header > div').boundingBox())!;
+  const thumbnail = (await card.locator('.character-previews').boundingBox())!;
+  const previews = await card.locator('.character-preview').all();
+  const boxes = await Promise.all(previews.map(async (preview) => (await preview.boundingBox())!));
+  expect(await card.locator('figcaption').allTextContents()).toEqual(['正面', '左向き', '右向き', '後ろ']);
+  for (let i = 1; i < boxes.length; i++) {
+    if (isMobile) { expect(boxes[i].x).toBe(boxes[0].x); expect(boxes[i].y).toBeGreaterThan(boxes[i - 1].y); }
+    else { expect(boxes[i].y).toBe(boxes[0].y); expect(boxes[i].x).toBeGreaterThan(boxes[i - 1].x); }
+  }
+  const details = (await card.locator('.project-card-header > div').first().boundingBox())!;
   const actions = (await card.locator('.project-actions').boundingBox())!;
   const bounds = (await card.boundingBox())!;
   expect(thumbnail.x).toBeGreaterThanOrEqual(details.x + details.width);
@@ -124,4 +148,33 @@ test('refreshes saved front frames, shows empty fronts honestly, and keeps the t
   expect(actions.y).toBeGreaterThanOrEqual(thumbnail.y + thumbnail.height);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await card.screenshot({ path: testInfo.outputPath('library-walk-preview.png') });
+});
+
+test('keeps legacy single images static and shows all empty directions without substituting artwork', async ({ page }) => {
+  await prepare(page);
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open('pixel-studio', 2);
+    request.onsuccess = () => {
+      const db = request.result; const tx = db.transaction('projects', 'readwrite');
+      const pixels = new Uint8ClampedArray(16 * 16 * 4); pixels.set([90, 100, 110, 255]);
+      tx.objectStore('projects').put({ id: 'legacy-preview', name: '旧画像', version: 1, width: 16, height: 16, pixels, updatedAt: Date.now() + 2 });
+      const frames = Array.from({ length: 12 }, () => new Uint8ClampedArray(16 * 16 * 4));
+      tx.objectStore('projects').put({ id: 'empty-preview', name: '空', version: 2, kind: 'character', width: 16, height: 16, frames, pixels: frames[1], frameIndex: 1, updatedAt: Date.now() + 1 });
+      tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error);
+    }; request.onerror = () => reject(request.error);
+  }));
+  await page.reload(); await enterLibrary(page);
+  const legacy = page.locator('[data-project-id="legacy-preview"]');
+  await legacy.scrollIntoViewIfNeeded();
+  await expect(legacy.locator('figure')).toHaveCount(1);
+  const image = legacy.getByRole('img', { name: '旧画像の画像プレビュー' });
+  await expect.poll(() => imagePixels(image, [[0, 0]])).toEqual([[90, 100, 110, 255]]);
+  const source = await image.getAttribute('src');
+  await page.clock.install(); await page.clock.runFor(1000);
+  await expect(image).toHaveAttribute('src', source!);
+  const empty = page.locator('[data-project-id="empty-preview"]');
+  await empty.scrollIntoViewIfNeeded();
+  await expect(empty.locator('figcaption')).toHaveText(['正面', '左向き', '右向き', '後ろ']);
+  await expect(empty.locator('.character-preview-image')).toHaveText(['未描画', '未描画', '未描画', '未描画']);
+  await expect(empty.locator('img')).toHaveCount(0);
 });
